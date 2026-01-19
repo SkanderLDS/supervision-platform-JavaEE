@@ -3,6 +3,7 @@ package com.vermeg.platform.supervision_platform.Service;
 import com.vermeg.platform.supervision_platform.DTO.ServerRequestDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerResponseDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerSummaryDTO;
+import com.vermeg.platform.supervision_platform.Entity.Environment;
 import com.vermeg.platform.supervision_platform.Entity.Server;
 import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
 import com.vermeg.platform.supervision_platform.Entity.ServerType;
@@ -30,7 +31,7 @@ public class ServerServiceImpl implements ServerService {
                 dto.getPort(),
                 ServerType.valueOf(dto.getType()),
                 dto.getVersion(),
-                ServerStatus.UP
+                Environment.valueOf(dto.getEnvironment())
         );
 
         return toResponseDTO(serverRepository.save(server));
@@ -53,8 +54,9 @@ public class ServerServiceImpl implements ServerService {
                 server.getPort(),
                 server.getType().name(),
                 server.getVersion(),
+                server.getEnvironment().name(),
                 server.getStatus().name(),
-                server.getCreatedAt()   // ✅ missing argument
+                server.getCreatedAt()
         );
     }
 

@@ -6,10 +6,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ServerRequestDTO {
-
     private String name;
     private String host;
-    private String port;
+    private int port;
     private String type;
     private String version;
+    private String environment;
 }

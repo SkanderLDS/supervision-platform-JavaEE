@@ -48,7 +48,7 @@ public class DeploymentServiceImpl implements  DeploymentService {
 
         simulateStep(2000);
 
-        
+
         app.markDeployed();
         version.markDeployed();
 
