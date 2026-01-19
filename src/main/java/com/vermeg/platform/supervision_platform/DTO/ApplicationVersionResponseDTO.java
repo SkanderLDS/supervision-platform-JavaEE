@@ -8,10 +8,11 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 public class ApplicationVersionResponseDTO {
+
     private Long id;
     private String version;
-    private String type;              // WAR / EAR
-    private String status;            // DEPLOYED, FAILED...
-    private LocalDateTime createdAt;
+    private String type;
+    private String status;
     private LocalDateTime deployedAt;
+    private LocalDateTime createdAt;
 }

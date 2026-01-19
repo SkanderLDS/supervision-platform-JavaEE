@@ -1,6 +1,7 @@
 package com.vermeg.platform.supervision_platform.Service;
 
 import com.vermeg.platform.supervision_platform.Entity.Application;
+import com.vermeg.platform.supervision_platform.Entity.ApplicationVersion;
 import com.vermeg.platform.supervision_platform.Entity.LogLevel;
 import com.vermeg.platform.supervision_platform.Repository.ApplicationRepository;
 import jakarta.transaction.Transactional;
@@ -11,32 +12,46 @@ import org.springframework.stereotype.Service;
 public class DeploymentServiceImpl implements  DeploymentService {
     private final ApplicationRepository applicationRepository;
     private final DeploymentLogService logService;
+    private final ApplicationVersionService applicationVersionService;
 
-    public DeploymentServiceImpl (ApplicationRepository applicationRepository,DeploymentLogService logService) {
+
+    public DeploymentServiceImpl (ApplicationRepository applicationRepository,DeploymentLogService logService,ApplicationVersionService applicationVersionService) {
         this.applicationRepository = applicationRepository;
         this.logService= logService;
+        this.applicationVersionService= applicationVersionService;
     }
 
     @Override
     public void deployApplication(Long applicationId) {
-        Application app = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("Application not found"));
-          app.markDeploying();
-        logService.log(app, "Deployment started", LogLevel.INFO);
-        simulateStep(2000);
+        Application app = findApplication(applicationId);
 
+
+        ApplicationVersion version =
+                applicationVersionService.deployNewVersion(
+                        app,
+                        app.getVersion(),
+                        app.getType()
+                );
+
+
+        app.markDeploying();
+        logService.log(app, "Deployment started for version " + version.getVersion(), LogLevel.INFO);
+
+        simulateStep(2000);
         logService.log(app, "Validating application package", LogLevel.INFO);
+
         simulateStep(1500);
-
         logService.log(app, "Uploading application to server", LogLevel.INFO);
-        simulateStep(2500);
 
+        simulateStep(2500);
         logService.log(app, "Starting application on server", LogLevel.INFO);
+
         simulateStep(2000);
 
+        
+        app.markDeployed();
+        version.markDeployed();
 
-
-          app.markDeployed();
         logService.log(app, "Application deployed successfully", LogLevel.INFO);
 
         applicationRepository.save(app);
