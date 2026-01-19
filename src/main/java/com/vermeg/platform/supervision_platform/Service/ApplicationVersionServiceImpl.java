@@ -38,7 +38,8 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
 
     @Override
     public List<ApplicationVersion> getVersionsForApplication(Long applicationId) {
-        return List.of();
+        return versionRepository
+                .findByApplicationIdOrderByCreatedAtDesc(applicationId);
     }
 
 
