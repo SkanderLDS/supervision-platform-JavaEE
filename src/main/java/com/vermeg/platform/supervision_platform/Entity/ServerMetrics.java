@@ -15,9 +15,9 @@ public class ServerMetrics {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private double cpuUsage;      // %
-    private double memoryUsage;   // %
-    private double diskUsage;     // %
+    private double cpuUsage;
+    private double memoryUsage;
+    private double diskUsage;
 
     private LocalDateTime collectedAt;
 
