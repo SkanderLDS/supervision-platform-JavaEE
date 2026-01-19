@@ -33,29 +33,54 @@ public class DeploymentServiceImpl implements  DeploymentService {
                         app.getType()
                 );
 
+        try {
 
-        app.markDeploying();
-        logService.log(app, "Deployment started for version " + version.getVersion(), LogLevel.INFO);
+            app.markDeploying();
+            logService.log(app,
+                    "Deployment started for version " + version.getVersion(),
+                    LogLevel.INFO
+            );
 
-        simulateStep(2000);
-        logService.log(app, "Validating application package", LogLevel.INFO);
+            simulateStep(2000);
 
-        simulateStep(1500);
-        logService.log(app, "Uploading application to server", LogLevel.INFO);
-
-        simulateStep(2500);
-        logService.log(app, "Starting application on server", LogLevel.INFO);
-
-        simulateStep(2000);
+            logService.log(app, "Validating application package", LogLevel.INFO);
+            simulateStep(1500);
 
 
-        app.markDeployed();
-        version.markDeployed();
+            if (Math.random() > 0.8) {
+                throw new RuntimeException("Package validation failed");
+            }
 
-        logService.log(app, "Application deployed successfully", LogLevel.INFO);
+            logService.log(app, "Uploading application to server", LogLevel.INFO);
+            simulateStep(2500);
+
+            logService.log(app, "Starting application on server", LogLevel.INFO);
+            simulateStep(2000);
+
+
+            app.markDeployed();
+            version.markDeployed();
+
+            logService.log(app,
+                    "Application deployed successfully",
+                    LogLevel.INFO
+            );
+
+        } catch (Exception ex) {
+
+
+            app.markFailed();
+            version.markFailed();
+
+            logService.log(app,
+                    "Deployment failed: " + ex.getMessage(),
+                    LogLevel.ERROR
+            );
+        }
 
         applicationRepository.save(app);
     }
+
 
 
     @Override

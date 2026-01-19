@@ -24,10 +24,7 @@ public class ApplicationVersionController {
     public List<ApplicationVersionResponseDTO> getVersions(
             @PathVariable Long applicationId
     ) {
-        return versionService.getVersionsForApplication(applicationId)
-                .stream()
-                .map(this::toDTO)
-                .toList();
+        return versionService.getVersionsForApplication(applicationId);
     }
 
     private ApplicationVersionResponseDTO toDTO(ApplicationVersion v) {

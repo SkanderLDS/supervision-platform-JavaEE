@@ -1,5 +1,6 @@
 package com.vermeg.platform.supervision_platform.Service;
 
+import com.vermeg.platform.supervision_platform.DTO.ApplicationVersionResponseDTO;
 import com.vermeg.platform.supervision_platform.Entity.Application;
 import com.vermeg.platform.supervision_platform.Entity.ApplicationType;
 import com.vermeg.platform.supervision_platform.Entity.ApplicationVersion;
@@ -14,5 +15,5 @@ public interface ApplicationVersionService {
             ApplicationType type
     );
 
-    List<ApplicationVersion> getVersionsForApplication(Long applicationId);
+    List<ApplicationVersionResponseDTO> getVersionsForApplication(Long applicationId);
 }

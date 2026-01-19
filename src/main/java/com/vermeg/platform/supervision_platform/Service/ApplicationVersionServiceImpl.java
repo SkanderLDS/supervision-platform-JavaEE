@@ -1,5 +1,6 @@
 package com.vermeg.platform.supervision_platform.Service;
 
+import com.vermeg.platform.supervision_platform.DTO.ApplicationVersionResponseDTO;
 import com.vermeg.platform.supervision_platform.Entity.Application;
 import com.vermeg.platform.supervision_platform.Entity.ApplicationType;
 import com.vermeg.platform.supervision_platform.Entity.ApplicationVersion;
@@ -37,9 +38,26 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
     }
 
     @Override
-    public List<ApplicationVersion> getVersionsForApplication(Long applicationId) {
-        return versionRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);
+    public List<ApplicationVersionResponseDTO> getVersionsForApplication(Long applicationId) {
+        return versionRepository
+                .findByApplicationIdOrderByCreatedAtDesc(applicationId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
+
+    private ApplicationVersionResponseDTO toDTO(ApplicationVersion version) {
+        return new ApplicationVersionResponseDTO(
+                version.getId(),
+                version.getVersion(),
+                version.getType().name(),
+                version.getStatus().name(),
+                version.getDeployedAt(),
+                version.getCreatedAt()
+
+        );
+    }
+
 
 
 }
