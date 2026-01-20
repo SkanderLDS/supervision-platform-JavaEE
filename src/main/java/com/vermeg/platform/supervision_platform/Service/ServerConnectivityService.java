@@ -1,7 +1,8 @@
 package com.vermeg.platform.supervision_platform.Service;
 
+import com.vermeg.platform.supervision_platform.Entity.Server;
 import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
 
 public interface ServerConnectivityService {
-    ServerStatus checkConnectivity(Long ServerId);
+    boolean checkConnectivity(Server server);
 }

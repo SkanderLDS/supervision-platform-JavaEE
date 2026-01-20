@@ -3,7 +3,9 @@ package com.vermeg.platform.supervision_platform.Service;
 import com.vermeg.platform.supervision_platform.Entity.Server;
 import com.vermeg.platform.supervision_platform.Entity.ServerMetrics;
 import com.vermeg.platform.supervision_platform.Repository.ServerMetricsRepository;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ServerMetricsServiceImpl implements ServerMetricsService {
     private final ServerMetricsRepository repository;
 

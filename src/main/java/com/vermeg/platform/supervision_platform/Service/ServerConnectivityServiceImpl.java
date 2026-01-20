@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -20,19 +21,7 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
         this.serverRepository = serverRepository;
     }
 
-    @Override
-    public ServerStatus checkConnectivity(Long serverId) {
 
-        Server server = serverRepository.findById(serverId)
-                .orElseThrow(() -> new RuntimeException("Server not found"));
-
-        boolean reachable = isReachable(server.getHost(), server.getPort());
-
-        server.setStatus(reachable ? ServerStatus.UP : ServerStatus.DOWN);
-        serverRepository.save(server);
-
-        return server.getStatus();
-    }
 
     private boolean isReachable(String host, int port) {
         try (Socket socket = new Socket()) {
@@ -45,4 +34,15 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
             return false;
         }
     }
+
+    @Override
+    public boolean checkConnectivity(Server server) {
+        try {
+            InetAddress address = InetAddress.getByName(server.getHost());
+            return address.isReachable(2000); // 2 seconds timeout
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
+

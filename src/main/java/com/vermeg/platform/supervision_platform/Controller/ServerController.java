@@ -7,6 +7,7 @@ import com.vermeg.platform.supervision_platform.Entity.Server;
 import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
 import com.vermeg.platform.supervision_platform.Service.ServerConnectivityService;
 import com.vermeg.platform.supervision_platform.Service.ServerService;
+import com.vermeg.platform.supervision_platform.Service.SupervisionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,11 +18,11 @@ import java.util.List;
 public class ServerController {
 
     private final ServerService serverService;
-    private final ServerConnectivityService connectivityService ;
+    private final SupervisionService supervisionService;
 
-    public ServerController(ServerService serverService, ServerConnectivityService connectivityService) {
+    public ServerController(ServerService serverService, SupervisionService supervisionService) {
         this.serverService = serverService;
-        this.connectivityService = connectivityService;
+        this.supervisionService = supervisionService;
     }
 
     @PostMapping
@@ -45,8 +46,8 @@ public class ServerController {
     }
 
     @PostMapping("/{id}/check")
-    public ResponseEntity<String> checkConnectivity(@PathVariable Long id) {
-        ServerStatus status = connectivityService.checkConnectivity(id);
+    public ResponseEntity<String> checkServer(@PathVariable Long id) {
+        ServerStatus status = supervisionService.checkServer(id);
         return ResponseEntity.ok("Server status: " + status);
     }
 }
