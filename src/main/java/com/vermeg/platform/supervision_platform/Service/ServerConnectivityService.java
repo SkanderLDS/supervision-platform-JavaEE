@@ -5,4 +5,5 @@ import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
 
 public interface ServerConnectivityService {
     boolean checkConnectivity(Server server);
+    ServerStatus checkServer(Server server);
 }

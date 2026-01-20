@@ -38,5 +38,6 @@ public class ServerMetrics {
         this.memoryUsage = memory;
         this.diskUsage = disk;
         this.collectedAt = LocalDateTime.now();
+
     }
 }

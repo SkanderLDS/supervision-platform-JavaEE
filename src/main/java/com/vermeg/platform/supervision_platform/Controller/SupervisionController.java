@@ -1,5 +1,6 @@
 package com.vermeg.platform.supervision_platform.Controller;
 
+import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
 import com.vermeg.platform.supervision_platform.Service.SupervisionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,5 +22,11 @@ public class SupervisionController {
     public ResponseEntity<String> supervise(@PathVariable Long id) {
         supervisionService.superviseServer(id);
         return ResponseEntity.ok("Supervision executed for server " + id);
+    }
+
+    @PostMapping("/servers/{id}/check")
+    public ResponseEntity<ServerStatus> checkServer(@PathVariable Long id) {
+        ServerStatus status = supervisionService.superviseServer(id);
+        return ResponseEntity.ok(status);
     }
 }

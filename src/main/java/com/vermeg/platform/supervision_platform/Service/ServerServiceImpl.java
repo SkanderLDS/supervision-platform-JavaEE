@@ -9,6 +9,7 @@ import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
 import com.vermeg.platform.supervision_platform.Entity.ServerType;
 import com.vermeg.platform.supervision_platform.Repository.ServerRepository;
 import com.vermeg.platform.supervision_platform.Service.ServerService;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,7 +22,6 @@ public class ServerServiceImpl implements ServerService {
     public ServerServiceImpl(ServerRepository serverRepository) {
         this.serverRepository = serverRepository;
     }
-
 
     @Override
     public ServerResponseDTO create(ServerRequestDTO dto) {
@@ -44,24 +44,6 @@ public class ServerServiceImpl implements ServerService {
                 .map(this::toResponseDTO)
                 .toList();
     }
-
-
-    private ServerResponseDTO toResponseDTO(Server server) {
-        return new ServerResponseDTO(
-                server.getId(),
-                server.getName(),
-                server.getHost(),
-                server.getPort(),
-                server.getType().name(),
-                server.getVersion(),
-                server.getEnvironment().name(),
-                server.getStatus().name(),
-                server.getCreatedAt()
-        );
-    }
-
-
-
 
     @Override
     public ServerResponseDTO getById(Long id) {
@@ -91,7 +73,22 @@ public class ServerServiceImpl implements ServerService {
         }
         serverRepository.deleteById(id);
     }
+
+    private ServerResponseDTO toResponseDTO(Server server) {
+        return new ServerResponseDTO(
+                server.getId(),
+                server.getName(),
+                server.getHost(),
+                server.getPort(),
+                server.getType().name(),
+                server.getVersion(),
+                server.getEnvironment().name(),
+                server.getStatus().name(),
+                server.getCreatedAt()
+        );
+    }
 }
+
 
 
 
