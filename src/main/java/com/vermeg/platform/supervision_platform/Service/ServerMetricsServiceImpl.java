@@ -5,6 +5,10 @@ import com.vermeg.platform.supervision_platform.Entity.ServerMetrics;
 import com.vermeg.platform.supervision_platform.Repository.ServerMetricsRepository;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+
 @Service
 public class ServerMetricsServiceImpl implements ServerMetricsService {
     private final ServerMetricsRepository repository;
@@ -16,10 +20,20 @@ public class ServerMetricsServiceImpl implements ServerMetricsService {
     @Override
     public ServerMetrics collectMetrics(Server server) {
 
-        // 🔧 Simulation (REALISTIC ranges)
-        double cpu = 10 + Math.random() * 80;
-        double memory = 20 + Math.random() * 70;
-        double disk = 30 + Math.random() * 60;
+        OperatingSystemMXBean osBean =
+                ManagementFactory.getOperatingSystemMXBean();
+
+        com.sun.management.OperatingSystemMXBean sunOsBean =
+                (com.sun.management.OperatingSystemMXBean) osBean;
+
+        double cpu = sunOsBean.getSystemCpuLoad() * 100;
+        double memory =
+                (1 - ((double) sunOsBean.getFreePhysicalMemorySize()
+                        / sunOsBean.getTotalPhysicalMemorySize())) * 100;
+
+        File root = new File("/");
+        double disk =
+                (1 - ((double) root.getFreeSpace() / root.getTotalSpace())) * 100;
 
         ServerMetrics metrics =
                 new ServerMetrics(server, cpu, memory, disk);

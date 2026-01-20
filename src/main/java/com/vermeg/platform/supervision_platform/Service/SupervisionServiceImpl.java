@@ -22,6 +22,8 @@ public class SupervisionServiceImpl implements SupervisionService {
         this.metricsService = metricsService;
     }
 
+
+
     @Override
     public void superviseServer(Long serverId) {
 
@@ -30,20 +32,10 @@ public class SupervisionServiceImpl implements SupervisionService {
         if (!reachable) {
             server.setStatus(ServerStatus.DOWN);
             serverRepository.save(server);
-            return;
-        }server.setStatus(ServerStatus.UP);
+            return;}
+        server.setStatus(ServerStatus.UP);
         metricsService.collectMetrics(server);
         serverRepository.save(server);
-    }
-
-    @Override
-    public ServerStatus checkServer(Long serverId) {
-
-        Server server = serverRepository.findById(serverId).orElseThrow(() -> new RuntimeException("Server not found"));
-        boolean reachable = connectivityService.checkConnectivity(server);
-        server.setStatus(reachable ? ServerStatus.UP : ServerStatus.DOWN);
-        serverRepository.save(server);
-        return server.getStatus();
     }
 }
 

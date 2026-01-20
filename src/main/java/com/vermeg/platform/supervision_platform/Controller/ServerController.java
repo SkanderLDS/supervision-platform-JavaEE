@@ -45,9 +45,4 @@ public class ServerController {
         serverService.delete(id);
     }
 
-    @PostMapping("/{id}/check")
-    public ResponseEntity<String> checkServer(@PathVariable Long id) {
-        ServerStatus status = supervisionService.checkServer(id);
-        return ResponseEntity.ok("Server status: " + status);
-    }
 }
