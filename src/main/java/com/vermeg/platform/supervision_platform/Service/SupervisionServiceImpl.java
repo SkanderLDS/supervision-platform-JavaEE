@@ -16,12 +16,12 @@ public class SupervisionServiceImpl implements SupervisionService {
     private final ServerMetricsService metricsService;
     private final AlertService alertService;
 
-    public SupervisionServiceImpl(ServerRepository serverRepository,ServerConnectivityService connectivityService, ServerMetricsService metricsService,AlertService alertService) {
+    public SupervisionServiceImpl(ServerRepository serverRepository, ServerConnectivityService connectivityService, ServerMetricsService metricsService, AlertService alertService) {
         this.serverRepository = serverRepository;
         this.connectivityService = connectivityService;
         this.metricsService = metricsService;
-        this.alertService=alertService;    }
-
+        this.alertService = alertService;
+    }
 
 
     @Override
@@ -31,18 +31,11 @@ public class SupervisionServiceImpl implements SupervisionService {
         Server server = serverRepository.findById(serverId)
                 .orElseThrow(() -> new RuntimeException("Server not found"));
 
-        boolean reachable = connectivityService.checkConnectivity(server);
-
-        if (!reachable) {
-            server.setStatus(ServerStatus.DOWN);
-            serverRepository.save(server);
-            return ServerStatus.DOWN;
-        }
-
-        server.setStatus(ServerStatus.UP);
+        ServerStatus status = connectivityService.checkServer(server);
+        server.setStatus(status);
         serverRepository.save(server);
+        return status;
 
-        return ServerStatus.UP;
     }
 }
 

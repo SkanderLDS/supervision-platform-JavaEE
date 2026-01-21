@@ -18,9 +18,12 @@ import java.util.List;
 public class ServerServiceImpl implements ServerService {
 
     private final ServerRepository serverRepository;
+    private final ServerConnectivityService connectivityService;
 
-    public ServerServiceImpl(ServerRepository serverRepository) {
+    public ServerServiceImpl(ServerRepository serverRepository,ServerConnectivityService connectivityService)
+    {
         this.serverRepository = serverRepository;
+        this.connectivityService = connectivityService;
     }
 
     @Override
@@ -72,6 +75,21 @@ public class ServerServiceImpl implements ServerService {
             throw new RuntimeException("Server not found");
         }
         serverRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public ServerStatus checkConnectivity(Long serverId) {
+
+        Server server = serverRepository.findById(serverId)
+                .orElseThrow(() -> new RuntimeException("Server not found"));
+
+        ServerStatus status = connectivityService.checkServer(server);
+
+        server.setStatus(status);
+        serverRepository.save(server);
+
+        return status;
     }
 
     private ServerResponseDTO toResponseDTO(Server server) {

@@ -2,7 +2,9 @@ package com.vermeg.platform.supervision_platform.Service;
 
 import com.vermeg.platform.supervision_platform.Entity.*;
 import com.vermeg.platform.supervision_platform.Repository.AlertRepository;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AlertServiceImpl implements AlertService{
     private final AlertRepository alertRepository;
 

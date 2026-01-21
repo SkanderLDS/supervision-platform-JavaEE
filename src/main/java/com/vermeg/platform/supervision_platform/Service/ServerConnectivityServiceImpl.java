@@ -13,35 +13,6 @@ import java.net.*;
 @Transactional
 public class ServerConnectivityServiceImpl implements ServerConnectivityService {
 
-    private final ServerRepository serverRepository;
-
-    public ServerConnectivityServiceImpl(ServerRepository serverRepository) {
-        this.serverRepository = serverRepository;
-    }
-
-    private boolean isReachable(String host, int port) {
-        try (Socket socket = new Socket()) {
-            socket.connect(
-                    new InetSocketAddress(host, port),
-                    3000 // timeout 3s
-            );
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean checkConnectivity(Server server) {
-        try {
-            InetAddress address =
-                    InetAddress.getByName(server.getHost());
-            return address.isReachable(3000);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     @Override
     public ServerStatus checkServer(Server server) {
 
@@ -58,7 +29,6 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
                 default:
                     return ServerStatus.UNKNOWN;
             }
-
         } catch (Exception e) {
             return ServerStatus.DOWN;
         }
@@ -66,36 +36,32 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
 
     private ServerStatus checkWildFly(Server server) {
         try {
-            String urlStr =
+            String url =
                     "http://" + server.getHost() + ":" + server.getPort() + "/management";
 
-            URL url = new URL(urlStr);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            HttpURLConnection conn =
+                    (HttpURLConnection) new URL(url).openConnection();
 
             conn.setConnectTimeout(3000);
             conn.setReadTimeout(3000);
             conn.setRequestMethod("GET");
 
-            int responseCode = conn.getResponseCode();
+            int code = conn.getResponseCode();
 
-            // 401 = management endpoint alive (auth required)
-            if (responseCode == 200 || responseCode == 401) {
-                return ServerStatus.UP;
-            }
-
-            return ServerStatus.DOWN;
+            // 401 = WildFly alive (auth required)
+            return (code == 200 || code == 401)
+                    ? ServerStatus.UP
+                    : ServerStatus.DOWN;
 
         } catch (Exception e) {
             return ServerStatus.DOWN;
         }
     }
+
     private ServerStatus checkWebSphere(Server server) {
-        // WebSphere usually uses SOAP/JMX
-        // For graduation: we validate TCP reachability on admin port
         try (Socket socket = new Socket()) {
             socket.connect(
-                    new InetSocketAddress(server.getHost(), Integer.parseInt(server.getPort())),
-                    3000
+                    new InetSocketAddress(server.getHost(), server.getPort()), 3000
             );
             return ServerStatus.UP;
         } catch (Exception e) {
@@ -103,4 +69,5 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
         }
     }
 }
+
 
