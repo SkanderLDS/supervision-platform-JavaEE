@@ -36,22 +36,24 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
 
     private ServerStatus checkWildFly(Server server) {
         try {
-            String url =
-                    "http://" + server.getHost() + ":" + server.getPort() + "/management";
+            String urlStr =
+                    "http://" + server.getHost() + ":" + server.getPort();
 
-            HttpURLConnection conn =
-                    (HttpURLConnection) new URL(url).openConnection();
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
             conn.setConnectTimeout(3000);
             conn.setReadTimeout(3000);
             conn.setRequestMethod("GET");
 
-            int code = conn.getResponseCode();
+            int responseCode = conn.getResponseCode();
 
-            // 401 = WildFly alive (auth required)
-            return (code == 200 || code == 401)
-                    ? ServerStatus.UP
-                    : ServerStatus.DOWN;
+            // 200 = welcome page
+            if (responseCode == 200) {
+                return ServerStatus.UP;
+            }
+
+            return ServerStatus.DOWN;
 
         } catch (Exception e) {
             return ServerStatus.DOWN;

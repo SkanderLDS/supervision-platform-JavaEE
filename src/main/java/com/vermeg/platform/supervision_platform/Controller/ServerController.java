@@ -50,4 +50,5 @@ public class ServerController {
         ServerStatus status = serverService.checkConnectivity(id);
         return ResponseEntity.ok("Server status: " + status);
     }
+
 }
