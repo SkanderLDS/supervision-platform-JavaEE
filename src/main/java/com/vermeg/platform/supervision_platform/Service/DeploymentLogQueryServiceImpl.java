@@ -27,4 +27,10 @@ public class DeploymentLogQueryServiceImpl implements DeploymentLogQueryService 
                 ))
                 .toList();
     }
+
+    @Override
+    public List<DeploymentLog> getApplicationDeploymentHistory(Long applicationId) {
+        return logRepository
+                .findByApplicationIdOrderByTimestampDesc(applicationId);
+    }
 }

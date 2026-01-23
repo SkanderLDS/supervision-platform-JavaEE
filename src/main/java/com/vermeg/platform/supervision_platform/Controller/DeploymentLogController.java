@@ -1,6 +1,5 @@
 package com.vermeg.platform.supervision_platform.Controller;
 
-import com.vermeg.platform.supervision_platform.Entity.DeploymentLog;
 import com.vermeg.platform.supervision_platform.DTO.DeploymentLogResponseDTO;
 import com.vermeg.platform.supervision_platform.Service.DeploymentLogQueryService;
 import org.springframework.web.bind.annotation.GetMapping;

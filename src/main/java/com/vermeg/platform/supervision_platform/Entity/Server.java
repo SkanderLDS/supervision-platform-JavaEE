@@ -25,8 +25,19 @@ public class Server {
     @Column(nullable = false)
     private String host;
 
+    // Application port (8080 / 9090)
     @Column(nullable = false)
     private int port;
+
+    // WildFly management port (9990 / 9991)
+    @Column(nullable = false)
+    private int managementPort;
+
+    @Column(nullable = false)
+    private String managementUsername;
+
+    @Column(nullable = false)
+    private String managementPassword;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -58,6 +69,9 @@ public class Server {
             String name,
             String host,
             int port,
+            int managementPort,
+            String managementUsername,
+            String managementPassword,
             ServerType type,
             String version,
             Environment environment
@@ -65,6 +79,9 @@ public class Server {
         this.name = name;
         this.host = host;
         this.port = port;
+        this.managementPort = managementPort;
+        this.managementUsername = managementUsername;
+        this.managementPassword = managementPassword;
         this.type = type;
         this.version = version;
         this.environment = environment;
@@ -72,5 +89,5 @@ public class Server {
         this.status = ServerStatus.UNKNOWN;
         this.createdAt = LocalDateTime.now();
     }
-
 }
+

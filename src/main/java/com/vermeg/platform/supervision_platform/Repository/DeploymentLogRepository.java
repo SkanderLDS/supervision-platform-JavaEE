@@ -9,5 +9,7 @@ import java.util.List;
 @Repository
 public interface DeploymentLogRepository extends JpaRepository<DeploymentLog,Long> {
     List<DeploymentLog> findByApplicationIdOrderByTimestampAsc(Long applicationId);
+    List<DeploymentLog> findByApplicationIdOrderByTimestampDesc(Long applicationId);
+
 
 }

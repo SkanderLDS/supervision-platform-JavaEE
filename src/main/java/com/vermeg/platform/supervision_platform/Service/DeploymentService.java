@@ -1,21 +1,19 @@
 package com.vermeg.platform.supervision_platform.Service;
 
+import com.vermeg.platform.supervision_platform.Entity.Application;
+
+import java.io.File;
+
 public interface DeploymentService {
 
-    void deployApplication(Long applicationId);
+    Application deploy(Long applicationId, File warFile);
 
-    void redeployApplication(Long applicationId);
+    Application redeploy(Long applicationId, File warFile);
 
-    void startApplication(Long applicationId);
-    void stopApplication(Long applicationId);
-    void restartApplication(Long applicationId);
+    Application start(Long applicationId);
 
+    Application stop(Long applicationId);
 
-
-
-
-
-
-
-
+    Application undeploy(Long applicationId);
 }
+

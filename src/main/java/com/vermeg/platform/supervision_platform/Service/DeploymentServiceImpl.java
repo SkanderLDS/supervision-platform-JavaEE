@@ -1,129 +1,164 @@
 package com.vermeg.platform.supervision_platform.Service;
 
-import com.vermeg.platform.supervision_platform.Entity.Application;
-import com.vermeg.platform.supervision_platform.Entity.ApplicationVersion;
-import com.vermeg.platform.supervision_platform.Entity.LogLevel;
+import com.vermeg.platform.supervision_platform.Entity.*;
 import com.vermeg.platform.supervision_platform.Repository.ApplicationRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+
+
 @Service
 @Transactional
-public class DeploymentServiceImpl implements  DeploymentService {
+public class DeploymentServiceImpl implements DeploymentService {
+
     private final ApplicationRepository applicationRepository;
-    private final DeploymentLogService logService;
-    private final ApplicationVersionService applicationVersionService;
+    private final DeploymentLogService deploymentLogService;
+    private final WildFlyManagementClient wildFlyClient;
 
-
-    public DeploymentServiceImpl (ApplicationRepository applicationRepository,DeploymentLogService logService,ApplicationVersionService applicationVersionService) {
+    public DeploymentServiceImpl(
+            ApplicationRepository applicationRepository,
+            DeploymentLogService deploymentLogService,
+            WildFlyManagementClient wildFlyClient
+    ) {
         this.applicationRepository = applicationRepository;
-        this.logService= logService;
-        this.applicationVersionService= applicationVersionService;
+        this.deploymentLogService = deploymentLogService;
+        this.wildFlyClient = wildFlyClient;
     }
 
+    /* =========================
+       DEPLOY
+       ========================= */
     @Override
-    public void deployApplication(Long applicationId) {
+    public Application deploy(Long applicationId, File warFile) {
         Application app = findApplication(applicationId);
-
-
-        ApplicationVersion version =
-                applicationVersionService.deployNewVersion(
-                        app,
-                        app.getVersion(),
-                        app.getType()
-                );
+        Server server = app.getServer();
 
         try {
-
             app.markDeploying();
-            logService.log(app,
-                    "Deployment started for version " + version.getVersion(),
-                    LogLevel.INFO
+            log(app, DeploymentAction.DEPLOY, DeploymentStatus.IN_PROGRESS,
+                    "Deployment started");
+
+            wildFlyClient.deploy(
+                    server,
+                    warFile,
+                    app.getRuntimeName()
             );
-
-            simulateStep(2000);
-
-            logService.log(app, "Validating application package", LogLevel.INFO);
-            simulateStep(1500);
-
-
-            if (Math.random() > 0.8) {
-                throw new RuntimeException("Package validation failed");
-            }
-
-            logService.log(app, "Uploading application to server", LogLevel.INFO);
-            simulateStep(2500);
-
-            logService.log(app, "Starting application on server", LogLevel.INFO);
-            simulateStep(2000);
-
 
             app.markDeployed();
-            version.markDeployed();
+            log(app, DeploymentAction.DEPLOY, DeploymentStatus.DEPLOYED,
+                    "Deployment successful");
 
-            logService.log(app,
-                    "Application deployed successfully",
-                    LogLevel.INFO
-            );
-
-        } catch (Exception ex) {
-
-
+        } catch (Exception e) {
             app.markFailed();
-            version.markFailed();
-
-            logService.log(app,
-                    "Deployment failed: " + ex.getMessage(),
-                    LogLevel.ERROR
-            );
+            log(app, DeploymentAction.DEPLOY, DeploymentStatus.FAILED,
+                    e.getMessage());
+            throw e;
         }
 
-        applicationRepository.save(app);
+        return applicationRepository.save(app);
     }
 
-
-
+    /* =========================
+       REDEPLOY
+       ========================= */
     @Override
-    public  void redeployApplication(Long applicationId) {
-        deployApplication(applicationId);
-    }
-
-    @Override
-    public void startApplication(Long applicationId) {
+    public Application redeploy(Long applicationId, File warFile) {
         Application app = findApplication(applicationId);
+
+        try {
+            wildFlyClient.undeploy(app.getServer(), app.getRuntimeName());
+
+            log(app, DeploymentAction.REDEPLOY, DeploymentStatus.IN_PROGRESS,
+                    "Redeployment started");
+
+            return deploy(applicationId, warFile);
+
+        } catch (Exception e) {
+            app.markFailed();
+            log(app, DeploymentAction.REDEPLOY, DeploymentStatus.FAILED,
+                    e.getMessage());
+            throw e;
+        }
+    }
+
+    /* =========================
+       START
+       ========================= */
+    @Override
+    public Application start(Long applicationId) {
+        Application app = findApplication(applicationId);
+
+        wildFlyClient.start(
+                app.getServer(),
+                app.getRuntimeName()
+        );
 
         app.start();
-        logService.log(app, "Application started", LogLevel.INFO);
+        log(app, DeploymentAction.START, DeploymentStatus.DEPLOYED,
+                "Application started");
+
+        return applicationRepository.save(app);
     }
 
+    /* =========================
+       STOP
+       ========================= */
     @Override
-    public void stopApplication(Long applicationId) {
+    public Application stop(Long applicationId) {
         Application app = findApplication(applicationId);
+
+        wildFlyClient.stop(
+                app.getServer(),
+                app.getRuntimeName()
+        );
 
         app.stop();
-        logService.log(app, "Application stopped", LogLevel.WARN);
+        log(app, DeploymentAction.STOP, DeploymentStatus.STOPPED,
+                "Application stopped");
+
+        return applicationRepository.save(app);
     }
 
+    /* =========================
+       UNDEPLOY
+       ========================= */
     @Override
-    public void restartApplication(Long applicationId) {
+    public Application undeploy(Long applicationId) {
         Application app = findApplication(applicationId);
 
-        app.restart();
-        logService.log(app, "Application restarted", LogLevel.INFO);
+        wildFlyClient.undeploy(
+                app.getServer(),
+                app.getRuntimeName()
+        );
 
+        app.setStatus(DeploymentStatus.UNDEPLOYED);
+
+        log(app, DeploymentAction.UNDEPLOY, DeploymentStatus.UNDEPLOYED,
+                "Application undeployed");
+
+        return applicationRepository.save(app);
     }
 
-
-    private void simulateStep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    private Application findApplication(Long applicationId) {
-        return applicationRepository.findById(applicationId)
+    /* =========================
+       HELPERS
+       ========================= */
+    private Application findApplication(Long id) {
+        return applicationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
+    }
+
+    private void log(Application app,
+                     DeploymentAction action,
+                     DeploymentStatus status,
+                     String message) {
+
+        deploymentLogService.log(
+                app,
+                action,
+                status,
+                app.getVersion(),
+                message
+        );
     }
 }

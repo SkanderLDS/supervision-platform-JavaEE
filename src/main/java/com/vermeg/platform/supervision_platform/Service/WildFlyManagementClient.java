@@ -1,48 +1,19 @@
 package com.vermeg.platform.supervision_platform.Service;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import com.vermeg.platform.supervision_platform.Entity.Server;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.util.List;
 
-@Service
-public class WildFlyManagementClient {
-    private final RestTemplate restTemplate = new RestTemplate();
+import java.io.File;
 
-    @Value("${wildfly.management.url}")
-    private String managementUrl;
+public interface WildFlyManagementClient {
 
-    @Value("${wildfly.management.username}")
-    private String username;
+    void deploy(Server server, File warFile, String runtimeName);
 
-    @Value("${wildfly.management.password}")
-    private String password;
+    void undeploy(Server server, String runtimeName);
 
-    public Map<String, Object> readDeployments() {
+    void start(Server server, String runtimeName);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBasicAuth(username, password);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("operation", "read-children-names");
-        body.put("child-type", "deployment");
-
-        HttpEntity<Map<String, Object>> entity =
-                new HttpEntity<>(body, headers);
-
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                managementUrl + "/management",
-                entity,
-                Map.class
-        );
-
-        return response.getBody();
-    }
+    void stop(Server server, String runtimeName);
 }
