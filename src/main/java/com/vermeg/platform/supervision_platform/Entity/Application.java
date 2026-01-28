@@ -23,7 +23,7 @@ public class Application {
     private String name;
 
     @Column(nullable = false)
-    private String version;
+    private String currentVersion;
 
     @Column(nullable = false)
     private String runtimeName;
@@ -58,15 +58,16 @@ public class Application {
     }
 
     public Application(String name,
-                       String version,
+                       String currentVersion,
                        String runtimeName,
                        String artifactName,
                        ApplicationType type,
                        String contextPath,
+
                        Server server) {
 
         this.name = name;
-        this.version = version;
+        this.currentVersion = currentVersion;
         this.runtimeName = runtimeName;
         this.artifactName = artifactName;
         this.type = type;

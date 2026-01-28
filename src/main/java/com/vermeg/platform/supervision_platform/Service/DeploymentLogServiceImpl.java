@@ -11,16 +11,20 @@ public class DeploymentLogServiceImpl implements DeploymentLogService {
 
     private final DeploymentLogRepository deploymentLogRepository;
 
-    public DeploymentLogServiceImpl(DeploymentLogRepository deploymentLogRepository) {
+    public DeploymentLogServiceImpl(
+            DeploymentLogRepository deploymentLogRepository
+    ) {
         this.deploymentLogRepository = deploymentLogRepository;
     }
 
     @Override
-    public void log(Application application,
-                    DeploymentAction action,
-                    DeploymentStatus status,
-                    String version,
-                    String message) {
+    public void log(
+            Application application,
+            DeploymentAction action,
+            DeploymentStatus status,
+            String version,
+            String message
+    ) {
 
         LogLevel level = resolveLevel(status);
 
@@ -37,14 +41,14 @@ public class DeploymentLogServiceImpl implements DeploymentLogService {
     }
 
     /* =========================
-       INTERNAL LOG LEVEL RULES
+       INTERNAL RULE
        ========================= */
     private LogLevel resolveLevel(DeploymentStatus status) {
         return switch (status) {
-            case FAILED -> LogLevel.ERROR;
+            case DEPLOYED, STOPPED -> LogLevel.INFO;
             case IN_PROGRESS -> LogLevel.INFO;
-            case STOPPED, UNDEPLOYED -> LogLevel.WARN;
-            default -> LogLevel.INFO;
+            case FAILED -> LogLevel.ERROR;
+            default -> LogLevel.WARN;
         };
     }
 }

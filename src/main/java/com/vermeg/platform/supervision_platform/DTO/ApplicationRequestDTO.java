@@ -7,8 +7,10 @@ import lombok.Setter;
 @Setter
 public class ApplicationRequestDTO {
     private String name;
-    private String version;
-    private String contextPath;
+    private String currentVersion;
+    private String runtimeName;   // ← WildFly runtime name
+    private String artifactName;  // ← WAR / EAR filename
     private String type;
+    private String contextPath;
     private Long serverId;
 }

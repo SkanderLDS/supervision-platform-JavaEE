@@ -24,27 +24,29 @@ public class ServerController {
         this.serverService = serverService;
         this.supervisionService = supervisionService;
     }
-
     @PostMapping
     public ServerResponseDTO create(@RequestBody ServerRequestDTO dto) {
         return serverService.create(dto);
     }
-
     @GetMapping
     public List<ServerResponseDTO> getAll() {
         return serverService.getAll();
     }
-
     @GetMapping("/{id}")
     public ServerResponseDTO getById(@PathVariable Long id) {
         return serverService.getById(id);
     }
-
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         serverService.delete(id);
     }
-
+    @PutMapping("/{id}")
+    public ResponseEntity<ServerResponseDTO> update(
+            @PathVariable Long id,
+            @RequestBody ServerRequestDTO dto
+    ) {
+        return ResponseEntity.ok(serverService.update(id, dto));
+    }
     @PostMapping("/{id}/check")
     public ResponseEntity<String> check(@PathVariable Long id) {
         ServerStatus status = serverService.checkConnectivity(id);

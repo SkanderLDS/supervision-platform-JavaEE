@@ -3,9 +3,7 @@ package com.vermeg.platform.supervision_platform.Service;
 import com.vermeg.platform.supervision_platform.Entity.Server;
 
 import java.io.File;
-import java.util.List;
 
-import java.io.File;
 
 public interface WildFlyManagementClient {
 
@@ -16,4 +14,5 @@ public interface WildFlyManagementClient {
     void start(Server server, String runtimeName);
 
     void stop(Server server, String runtimeName);
+
 }

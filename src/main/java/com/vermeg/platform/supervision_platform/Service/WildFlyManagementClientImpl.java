@@ -1,68 +1,62 @@
 package com.vermeg.platform.supervision_platform.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vermeg.platform.supervision_platform.Entity.Server;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
-import java.util.List;
+import java.nio.file.Files;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
-@Service
-public class WildFlyManagementClientImpl implements WildFlyManagementClient {
+@Component
+public class WildFlyManagementClientImpl
+        implements WildFlyManagementClient {
 
-    private final RestTemplate restTemplate;
-    private final String username;
-    private final String password;
-
-    public WildFlyManagementClientImpl(
-            RestTemplateBuilder builder,
-            @Value("${wildfly.management.username}") String username,
-            @Value("${wildfly.management.password}") String password
-    ) {
-        this.restTemplate = builder.build();
-        this.username = username;
-        this.password = password;
-    }
+    private final RestTemplate restTemplate = new RestTemplate();
 
     /* =========================
        DEPLOY
        ========================= */
     @Override
     public void deploy(Server server, File warFile, String runtimeName) {
+        try {
+            byte[] bytes = Files.readAllBytes(warFile.toPath());
+            String content = Base64.getEncoder().encodeToString(bytes);
 
-        String url = managementUrl(server);
+            Map<String, Object> operation = new HashMap<>();
+            operation.put("operation", "add");
+            operation.put("address", new Object[]{
+                    new Object[]{"deployment", runtimeName}
+            });
+            operation.put("content", new Object[]{
+                    Map.of("bytes", content)
+            });
+            operation.put("enabled", true);
 
-        Map<String, Object> body = Map.of(
-                "operation", "add",
-                "address", List.of("deployment", runtimeName),
-                "content", List.of(Map.of(
-                        "path", warFile.getAbsolutePath(),
-                        "archive", true
-                )),
-                "enabled", true
-        );
+            execute(server, operation);
 
-        execute(url, body);
+        } catch (Exception e) {
+            throw new RuntimeException("WildFly deploy failed", e);
+        }
     }
 
     /* =========================
-       UNDEPLOY
+       UNDEPLOY (REMOVE)
        ========================= */
     @Override
     public void undeploy(Server server, String runtimeName) {
 
-        String url = managementUrl(server);
+        Map<String, Object> operation = new HashMap<>();
+        operation.put("operation", "remove");
+        operation.put("address", new Object[]{
+                new Object[]{"deployment", runtimeName}
+        });
 
-        Map<String, Object> body = Map.of(
-                "operation", "remove",
-                "address", List.of("deployment", runtimeName)
-        );
-
-        execute(url, body);
+        execute(server, operation);
     }
 
     /* =========================
@@ -71,14 +65,13 @@ public class WildFlyManagementClientImpl implements WildFlyManagementClient {
     @Override
     public void start(Server server, String runtimeName) {
 
-        String url = managementUrl(server);
+        Map<String, Object> operation = new HashMap<>();
+        operation.put("operation", "deploy");
+        operation.put("address", new Object[]{
+                new Object[]{"deployment", runtimeName}
+        });
 
-        Map<String, Object> body = Map.of(
-                "operation", "deploy",
-                "address", List.of("deployment", runtimeName)
-        );
-
-        execute(url, body);
+        execute(server, operation);
     }
 
     /* =========================
@@ -87,37 +80,46 @@ public class WildFlyManagementClientImpl implements WildFlyManagementClient {
     @Override
     public void stop(Server server, String runtimeName) {
 
-        String url = managementUrl(server);
+        Map<String, Object> operation = new HashMap<>();
+        operation.put("operation", "undeploy");
+        operation.put("address", new Object[]{
+                new Object[]{"deployment", runtimeName}
+        });
 
-        Map<String, Object> body = Map.of(
-                "operation", "undeploy",
-                "address", List.of("deployment", runtimeName)
-        );
-
-        execute(url, body);
+        execute(server, operation);
     }
 
     /* =========================
-       INTERNAL HELPERS
+       CORE EXECUTION
        ========================= */
-    private String managementUrl(Server server) {
-        return "http://" + server.getHost() + ":9990/management";
-    }
+    private void execute(Server server, Map<String, Object> operation) {
 
-    private void execute(String url, Map<String, Object> body) {
+        String url = "http://" + server.getHost()
+                + ":" + server.getManagementPort()
+                + "/management";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBasicAuth(username, password);
+        headers.setBasicAuth(
+                server.getManagementUsername(),
+                server.getManagementPassword()
+        );
 
         HttpEntity<Map<String, Object>> request =
-                new HttpEntity<>(body, headers);
+                new HttpEntity<>(operation, headers);
 
-        ResponseEntity<Map> response =
-                restTemplate.postForEntity(url, request, Map.class);
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                request,
+                Map.class
+        );
 
-        if (!"success".equals(response.getBody().get("outcome"))) {
-            throw new RuntimeException("WildFly operation failed: " + response.getBody());
+        if (response.getBody() == null
+                || !"success".equals(response.getBody().get("outcome"))) {
+            throw new RuntimeException(
+                    "WildFly management operation failed: " + response.getBody()
+            );
         }
     }
 }

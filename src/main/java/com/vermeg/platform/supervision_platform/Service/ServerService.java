@@ -20,6 +20,7 @@ public interface ServerService {
     ServerSummaryDTO getSummaryById(Long id);
 
     void delete(Long id);
+    ServerResponseDTO update(Long id, ServerRequestDTO dto);
 
     ServerStatus checkConnectivity(Long serverId);
 }

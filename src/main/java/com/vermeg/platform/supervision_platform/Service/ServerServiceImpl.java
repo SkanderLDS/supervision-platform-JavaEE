@@ -28,10 +28,14 @@ public class ServerServiceImpl implements ServerService {
 
     @Override
     public ServerResponseDTO create(ServerRequestDTO dto) {
+
         Server server = new Server(
                 dto.getName(),
                 dto.getHost(),
                 dto.getPort(),
+                dto.getManagementPort(),
+                dto.getManagementUsername(),
+                dto.getManagementPassword(),
                 ServerType.valueOf(dto.getType()),
                 dto.getVersion(),
                 Environment.valueOf(dto.getEnvironment())
@@ -39,15 +43,12 @@ public class ServerServiceImpl implements ServerService {
 
         return toResponseDTO(serverRepository.save(server));
     }
-
     @Override
     public List<ServerResponseDTO> getAll() {
         return serverRepository.findAll()
                 .stream()
                 .map(this::toResponseDTO)
-                .toList();
-    }
-
+                .toList();                     }
     @Override
     public ServerResponseDTO getById(Long id) {
         return toResponseDTO(
@@ -61,14 +62,9 @@ public class ServerServiceImpl implements ServerService {
         Server server = serverRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Server not found"));
 
-        return new ServerSummaryDTO(
-                server.getId(),
-                server.getName(),
-                server.getType().name(),
-                server.getStatus().name()
+        return new ServerSummaryDTO(server.getId(), server.getName(), server.getType().name(), server.getStatus().name()
         );
     }
-
     @Override
     public void delete(Long id) {
         if (!serverRepository.existsById(id)) {
@@ -76,33 +72,40 @@ public class ServerServiceImpl implements ServerService {
         }
         serverRepository.deleteById(id);
     }
+    @Override
+    @Transactional
+    public ServerResponseDTO update(Long id, ServerRequestDTO dto) {
 
+        Server server = serverRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Server not found"));
+
+        server.setName(dto.getName());
+        server.setHost(dto.getHost());
+        server.setPort(dto.getPort());
+        server.setManagementPort(dto.getManagementPort());
+        server.setManagementUsername(dto.getManagementUsername());
+        server.setManagementPassword(dto.getManagementPassword());
+        server.setType(ServerType.valueOf(dto.getType()));
+        server.setVersion(dto.getVersion());
+        server.setEnvironment(Environment.valueOf(dto.getEnvironment()));
+
+        return toResponseDTO(serverRepository.save(server));
+    }
     @Override
     @Transactional
     public ServerStatus checkConnectivity(Long serverId) {
 
-        Server server = serverRepository.findById(serverId)
-                .orElseThrow(() -> new RuntimeException("Server not found"));
-
+        Server server = serverRepository.findById(serverId).orElseThrow(() -> new RuntimeException("Server not found"));
         ServerStatus status = connectivityService.checkServer(server);
-
         server.setStatus(status);
         serverRepository.save(server);
-
         return status;
     }
 
     private ServerResponseDTO toResponseDTO(Server server) {
-        return new ServerResponseDTO(
-                server.getId(),
-                server.getName(),
-                server.getHost(),
-                server.getPort(),
-                server.getType().name(),
-                server.getVersion(),
-                server.getEnvironment().name(),
-                server.getStatus().name(),
-                server.getCreatedAt()
+        return new ServerResponseDTO(server.getId(), server.getName(), server.getHost(),
+                server.getPort(),server.getType().name(),server.getVersion(),server.getEnvironment().name(),
+                server.getStatus().name(),server.getCreatedAt()
         );
     }
 }

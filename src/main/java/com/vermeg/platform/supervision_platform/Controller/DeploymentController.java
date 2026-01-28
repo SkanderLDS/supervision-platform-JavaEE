@@ -1,5 +1,6 @@
 package com.vermeg.platform.supervision_platform.Controller;
-import com.vermeg.platform.supervision_platform.Entity.Application;
+
+import com.vermeg.platform.supervision_platform.Entity.ApplicationVersion;
 import com.vermeg.platform.supervision_platform.Service.DeploymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -7,11 +8,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RestController
-@RequestMapping("/api/deployments")
+@RequestMapping("/api/versions")
 public class DeploymentController {
 
     private final DeploymentService deploymentService;
@@ -20,46 +19,62 @@ public class DeploymentController {
         this.deploymentService = deploymentService;
     }
 
-    @PostMapping("/{applicationId}/deploy")
-    public ResponseEntity<Application> deploy(@PathVariable Long applicationId,
-                                              @RequestParam("file") MultipartFile file)
-            throws IOException {
+    /* =========================
+       DEPLOY
+       ========================= */
+    @PostMapping("/{versionId}/deploy")
+    public ResponseEntity<ApplicationVersion> deploy(
+            @PathVariable Long versionId,
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
 
         File artifact = toTempFile(file);
-        Application app = deploymentService.deployApplication(applicationId, artifact);
-        return ResponseEntity.ok(app);
+        ApplicationVersion version =
+                deploymentService.deploy(versionId, artifact);
+
+        return ResponseEntity.ok(version);
     }
 
-    @PostMapping("/{applicationId}/redeploy")
-    public ResponseEntity<Application> redeploy(@PathVariable Long applicationId,
-                                                @RequestParam("file") MultipartFile file)
-            throws IOException {
+    /* =========================
+       REDEPLOY
+       ========================= */
+    @PostMapping("/{versionId}/redeploy")
+    public ResponseEntity<ApplicationVersion> redeploy(
+            @PathVariable Long versionId,
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
 
         File artifact = toTempFile(file);
-        Application app = deploymentService.redeployApplication(applicationId, artifact);
-        return ResponseEntity.ok(app);
+        ApplicationVersion version =
+                deploymentService.redeploy(versionId, artifact);
+
+        return ResponseEntity.ok(version);
     }
 
-    @PostMapping("/{applicationId}/start")
-    public ResponseEntity<Application> start(@PathVariable Long applicationId) {
-
-        Application app = deploymentService.startApplication(applicationId);
-        return ResponseEntity.ok(app);
+    /* =========================
+       START
+       ========================= */
+    @PostMapping("/{versionId}/start")
+    public ResponseEntity<Void> start(@PathVariable Long versionId) {
+        deploymentService.start(versionId);
+        return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{applicationId}/stop")
-    public ResponseEntity<Application> stop(@PathVariable Long applicationId) {
-
-        Application app = deploymentService.stopApplication(applicationId);
-        return ResponseEntity.ok(app);
+    /* =========================
+       STOP
+       ========================= */
+    @PostMapping("/{versionId}/stop")
+    public ResponseEntity<Void> stop(@PathVariable Long versionId) {
+        deploymentService.stop(versionId);
+        return ResponseEntity.ok().build();
     }
 
-    // ---------------- PRIVATE UTILS ----------------
-
+    /* =========================
+       UTILS
+       ========================= */
     private File toTempFile(MultipartFile multipartFile) throws IOException {
-
-        Path tempFile = Files.createTempFile("deploy-", multipartFile.getOriginalFilename());
-        multipartFile.transferTo(tempFile.toFile());
-        return tempFile.toFile();
+        File temp = File.createTempFile("deploy-", ".war");
+        multipartFile.transferTo(temp);
+        return temp;
     }
 }

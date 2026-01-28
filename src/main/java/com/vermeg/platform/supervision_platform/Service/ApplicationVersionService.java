@@ -16,4 +16,6 @@ public interface ApplicationVersionService {
     );
 
     List<ApplicationVersionResponseDTO> getVersionsForApplication(Long applicationId);
+    void markVersionFailed(ApplicationVersion version);
+    void markVersionDeployed(ApplicationVersion version);
 }

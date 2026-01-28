@@ -1,36 +1,62 @@
 package com.vermeg.platform.supervision_platform.Service;
 
 import com.vermeg.platform.supervision_platform.DTO.DeploymentLogResponseDTO;
+import com.vermeg.platform.supervision_platform.Entity.DeploymentAction;
 import com.vermeg.platform.supervision_platform.Entity.DeploymentLog;
 import com.vermeg.platform.supervision_platform.Repository.DeploymentLogRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-public class DeploymentLogQueryServiceImpl implements DeploymentLogQueryService {
+@Transactional(readOnly = true)
+public class DeploymentLogQueryServiceImpl
+        implements DeploymentLogQueryService {
 
-    private final DeploymentLogRepository logRepository;
+    private final DeploymentLogRepository deploymentLogRepository;
 
-    public DeploymentLogQueryServiceImpl(DeploymentLogRepository logRepository) {
-        this.logRepository = logRepository;
+    public DeploymentLogQueryServiceImpl(
+            DeploymentLogRepository deploymentLogRepository
+    ) {
+        this.deploymentLogRepository = deploymentLogRepository;
     }
 
     @Override
-    public List<DeploymentLogResponseDTO> getLogsForApplication(Long applicationId) {
-        return logRepository.findByApplicationIdOrderByTimestampAsc(applicationId)
-                .stream()
-                .map(log -> new DeploymentLogResponseDTO(
-                        log.getMessage(),
-                        log.getLevel().name(),
-                        log.getTimestamp()
-                ))
-                .toList();
+    public List<DeploymentLog> getLogsForApplication(Long applicationId) {
+        return deploymentLogRepository
+                .findByApplicationIdOrderByTimestampAsc(applicationId);
     }
 
     @Override
-    public List<DeploymentLog> getApplicationDeploymentHistory(Long applicationId) {
-        return logRepository
+    public List<DeploymentLog> getLogsForApplicationDesc(Long applicationId) {
+        return deploymentLogRepository
                 .findByApplicationIdOrderByTimestampDesc(applicationId);
     }
+
+    @Override
+    public List<DeploymentLog> getLogsForApplicationByAction(
+            Long applicationId,
+            DeploymentAction action
+    ) {
+        return deploymentLogRepository
+                .findByApplicationIdAndActionOrderByTimestampDesc(
+                        applicationId,
+                        action
+                );
+    }
+
+    @Override
+    public List<DeploymentLog> getLogsForApplicationByVersion(
+            Long applicationId,
+            String version
+    ) {
+        return deploymentLogRepository
+                .findByApplicationIdAndVersionOrderByTimestampDesc(
+                        applicationId,
+                        version
+                );
+    }
 }
+

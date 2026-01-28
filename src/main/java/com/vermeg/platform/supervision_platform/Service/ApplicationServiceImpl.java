@@ -2,16 +2,12 @@ package com.vermeg.platform.supervision_platform.Service;
 
 import com.vermeg.platform.supervision_platform.DTO.ApplicationRequestDTO;
 import com.vermeg.platform.supervision_platform.DTO.ApplicationResponseDTO;
-import com.vermeg.platform.supervision_platform.DTO.ServerResponseDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerSummaryDTO;
-import com.vermeg.platform.supervision_platform.Entity.Application;
-import com.vermeg.platform.supervision_platform.Entity.ApplicationType;
-import com.vermeg.platform.supervision_platform.Entity.DeploymentStatus;
+import com.vermeg.platform.supervision_platform.Entity.*;
 import com.vermeg.platform.supervision_platform.Repository.ApplicationRepository;
 import com.vermeg.platform.supervision_platform.Repository.ServerRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -30,20 +26,20 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     public ApplicationResponseDTO create(ApplicationRequestDTO dto) {
 
-        Application app = new Application();
-        app.setName(dto.getName());
-        app.setVersion(dto.getVersion());
-        app.setContextPath(dto.getContextPath());
-        app.setType(ApplicationType.valueOf(dto.getType()));
-        app.setStatus(DeploymentStatus.UNDEPLOYED);
-        app.setCreatedAt(LocalDateTime.now());
+        Server server = serverRepository.findById(dto.getServerId())
+                .orElseThrow(() -> new RuntimeException("Server not found"));
 
-        if (dto.getServerId() != null) {
-            app.setServer(
-                    serverRepository.findById(dto.getServerId())
-                            .orElseThrow(() -> new RuntimeException("Server not found"))
-            );
-        }
+        // Application is created WITHOUT version
+        // Versions are managed via ApplicationVersionService
+        Application app = new Application(
+                dto.getName(),
+                null, // currentVersion (set when deployed)
+                dto.getRuntimeName(),
+                dto.getArtifactName(),
+                ApplicationType.valueOf(dto.getType()),
+                dto.getContextPath(),
+                server
+        );
 
         Application saved = applicationRepository.save(app);
         return toDTO(saved);
@@ -92,7 +88,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         return new ApplicationResponseDTO(
                 app.getId(),
                 app.getName(),
-                app.getVersion(),
+                app.getCurrentVersion(),
                 app.getType().name(),
                 app.getContextPath(),
                 app.getStatus().name(),
