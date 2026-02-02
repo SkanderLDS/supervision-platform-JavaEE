@@ -27,22 +27,15 @@ public class DeploymentLogServiceImpl implements DeploymentLogService {
     ) {
 
         LogLevel level = resolveLevel(status);
-
         DeploymentLog log = new DeploymentLog(
                 application,
                 action,
                 status,
                 version,
                 message,
-                level
-        );
-
+                level);
         deploymentLogRepository.save(log);
     }
-
-    /* =========================
-       INTERNAL RULE
-       ========================= */
     private LogLevel resolveLevel(DeploymentStatus status) {
         return switch (status) {
             case DEPLOYED, STOPPED -> LogLevel.INFO;

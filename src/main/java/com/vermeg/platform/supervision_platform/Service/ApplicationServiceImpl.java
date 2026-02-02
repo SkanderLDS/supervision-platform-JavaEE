@@ -21,19 +21,13 @@ public class ApplicationServiceImpl implements ApplicationService {
         this.applicationRepository = applicationRepository;
         this.serverRepository = serverRepository;
     }
-
-    // ================= CREATE =================
     @Override
     public ApplicationResponseDTO create(ApplicationRequestDTO dto) {
 
-        Server server = serverRepository.findById(dto.getServerId())
-                .orElseThrow(() -> new RuntimeException("Server not found"));
-
-        // Application is created WITHOUT version
-        // Versions are managed via ApplicationVersionService
+        Server server = serverRepository.findById(dto.getServerId()).orElseThrow(() -> new RuntimeException("Server not found"));
         Application app = new Application(
                 dto.getName(),
-                null, // currentVersion (set when deployed)
+                null,
                 dto.getRuntimeName(),
                 dto.getArtifactName(),
                 ApplicationType.valueOf(dto.getType()),
@@ -45,53 +39,35 @@ public class ApplicationServiceImpl implements ApplicationService {
         return toDTO(saved);
     }
 
-    // ================= READ ALL =================
     @Override
     public List<ApplicationResponseDTO> getAll() {
-        return applicationRepository.findAll()
-                .stream()
+        return applicationRepository.findAll().stream()
                 .map(this::toDTO)
                 .toList();
     }
-
-    // ================= READ ONE =================
     @Override
     public ApplicationResponseDTO getById(Long id) {
-        Application app = applicationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Application not found"));
+        Application app = applicationRepository.findById(id).orElseThrow(() -> new RuntimeException("Application not found"));
         return toDTO(app);
     }
-
-    // ================= DELETE =================
     @Override
     public void deleteApplication(Long id) {
         if (!applicationRepository.existsById(id)) {
             throw new RuntimeException("Application not found");
-        }
-        applicationRepository.deleteById(id);
+        }applicationRepository.deleteById(id);
     }
 
-    // ================= MAPPER =================
     private ApplicationResponseDTO toDTO(Application app) {
 
         ServerSummaryDTO serverDTO = null;
 
         if (app.getServer() != null) {
-            serverDTO = new ServerSummaryDTO(
-                    app.getServer().getId(),
-                    app.getServer().getName(),
+            serverDTO = new ServerSummaryDTO(app.getServer().getId(), app.getServer().getName(),
                     app.getServer().getType().name(),
-                    app.getServer().getStatus().name()
-            );
+                    app.getServer().getStatus().name() );
         }
-
-        return new ApplicationResponseDTO(
-                app.getId(),
-                app.getName(),
-                app.getCurrentVersion(),
-                app.getType().name(),
-                app.getContextPath(),
-                app.getStatus().name(),
+        return new ApplicationResponseDTO(app.getId(), app.getName(), app.getCurrentVersion(),
+                app.getType().name(), app.getContextPath(), app.getStatus().name(),
                 app.getLastDeployedAt(),
                 serverDTO
         );

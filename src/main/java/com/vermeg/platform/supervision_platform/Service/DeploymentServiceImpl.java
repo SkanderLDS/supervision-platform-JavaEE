@@ -29,19 +29,21 @@ public class DeploymentServiceImpl implements DeploymentService {
         this.deploymentLogService = deploymentLogService;
         this.wildFlyClient = wildFlyClient;
     }
+
+    /* =========================
+       DEPLOY
+       ========================= */
     @Override
     public ApplicationVersion deploy(Long versionId, File artifact) {
 
         ApplicationVersion version = findVersion(versionId);
         Application app = version.getApplication();
         Server server = app.getServer();
-
         try {
             version.markDeploying();
             app.markDeploying();
-            log(version, DeploymentAction.DEPLOY, DeploymentStatus.IN_PROGRESS,
-                    "Deployment started");wildFlyClient.deploy(server, artifact, app.getRuntimeName()
-            );
+            log(version, DeploymentAction.DEPLOY, DeploymentStatus.IN_PROGRESS, "Deployment started");
+            wildFlyClient.deploy(server, artifact, app.getRuntimeName());
             version.markDeployed();
             app.markDeployed();
             app.setCurrentVersion(version.getVersion());
@@ -52,18 +54,19 @@ public class DeploymentServiceImpl implements DeploymentService {
             version.markFailed();
             app.markFailed();
             log(version, DeploymentAction.DEPLOY, DeploymentStatus.FAILED, e.getMessage());
+            versionRepository.save(version);
+            applicationRepository.save(app);
             throw e;
         }
     }
     @Override
     public ApplicationVersion redeploy(Long versionId, File artifact) {
+
         ApplicationVersion version = findVersion(versionId);
         Application app = version.getApplication();
-        wildFlyClient.undeploy(
-                app.getServer(),
-                app.getRuntimeName() );
-        log(version, DeploymentAction.REDEPLOY, DeploymentStatus.IN_PROGRESS, "Redeployment started");
-
+        wildFlyClient.undeploy(app.getServer(), app.getRuntimeName());
+        log(version, DeploymentAction.REDEPLOY,
+                DeploymentStatus.IN_PROGRESS, "Redeployment started");
         return deploy(versionId, artifact);
     }
     @Override
@@ -72,31 +75,38 @@ public class DeploymentServiceImpl implements DeploymentService {
         Application app = version.getApplication();
         wildFlyClient.start(app.getServer(), app.getRuntimeName());
         app.start();
+        version.markDeployed();
         log(version, DeploymentAction.START, DeploymentStatus.DEPLOYED, "Application started");
         applicationRepository.save(app);
+        versionRepository.save(version);
     }
-
     @Override
     public void stop(Long versionId) {
         ApplicationVersion version = findVersion(versionId);
         Application app = version.getApplication();
         wildFlyClient.stop(app.getServer(), app.getRuntimeName());
         app.stop();
+        version.setStatus(DeploymentStatus.STOPPED);
         log(version, DeploymentAction.STOP, DeploymentStatus.STOPPED, "Application stopped");
         applicationRepository.save(app);
+        versionRepository.save(version);
     }
-
-
     private ApplicationVersion findVersion(Long id) {
-        return versionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("ApplicationVersion not found"));
+        return versionRepository.findById(id).orElseThrow(() -> new RuntimeException("ApplicationVersion not found"));
     }
 
-    private void log(ApplicationVersion version, DeploymentAction action, DeploymentStatus status,
+    private void log(ApplicationVersion version,
+                     DeploymentAction action,
+                     DeploymentStatus status,
                      String message) {
 
         deploymentLogService.log(
-                version.getApplication(), action, status, version.getVersion(), message
+                version.getApplication(),
+                action,
+                status,
+                version.getVersion(),
+                message
         );
     }
 }
+

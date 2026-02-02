@@ -18,15 +18,11 @@ public class WildFlyManagementClientImpl
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    /* =========================
-       DEPLOY
-       ========================= */
     @Override
     public void deploy(Server server, File warFile, String runtimeName) {
         try {
             byte[] bytes = Files.readAllBytes(warFile.toPath());
             String content = Base64.getEncoder().encodeToString(bytes);
-
             Map<String, Object> operation = new HashMap<>();
             operation.put("operation", "add");
             operation.put("address", new Object[]{
@@ -36,32 +32,23 @@ public class WildFlyManagementClientImpl
                     Map.of("bytes", content)
             });
             operation.put("enabled", true);
-
             execute(server, operation);
-
         } catch (Exception e) {
             throw new RuntimeException("WildFly deploy failed", e);
         }
     }
 
-    /* =========================
-       UNDEPLOY (REMOVE)
-       ========================= */
     @Override
     public void undeploy(Server server, String runtimeName) {
 
         Map<String, Object> operation = new HashMap<>();
         operation.put("operation", "remove");
         operation.put("address", new Object[]{
-                new Object[]{"deployment", runtimeName}
-        });
-
+                new Object[]{"deployment", runtimeName}});
         execute(server, operation);
+
     }
 
-    /* =========================
-       START
-       ========================= */
     @Override
     public void start(Server server, String runtimeName) {
 
@@ -74,9 +61,6 @@ public class WildFlyManagementClientImpl
         execute(server, operation);
     }
 
-    /* =========================
-       STOP
-       ========================= */
     @Override
     public void stop(Server server, String runtimeName) {
 
@@ -85,13 +69,9 @@ public class WildFlyManagementClientImpl
         operation.put("address", new Object[]{
                 new Object[]{"deployment", runtimeName}
         });
-
         execute(server, operation);
     }
 
-    /* =========================
-       CORE EXECUTION
-       ========================= */
     private void execute(Server server, Map<String, Object> operation) {
 
         String url = "http://" + server.getHost()
@@ -100,26 +80,17 @@ public class WildFlyManagementClientImpl
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBasicAuth(
-                server.getManagementUsername(),
-                server.getManagementPassword()
+        headers.setBasicAuth(server.getManagementUsername(), server.getManagementPassword()
         );
-
         HttpEntity<Map<String, Object>> request =
                 new HttpEntity<>(operation, headers);
 
         ResponseEntity<Map> response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                request,
-                Map.class
+                url, HttpMethod.POST, request, Map.class
         );
-
         if (response.getBody() == null
                 || !"success".equals(response.getBody().get("outcome"))) {
-            throw new RuntimeException(
-                    "WildFly management operation failed: " + response.getBody()
-            );
+            throw new RuntimeException("WildFly management operation failed: " + response.getBody());
         }
-    }
+    } //i have verified with the "encadreur" and he told me that SSH also for deployments and etc... so not API management , we can work with SSH
 }

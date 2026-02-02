@@ -11,7 +11,15 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 public interface ServerService {
+
+    /* =========================
+       CRUD
+       ========================= */
     ServerResponseDTO create(ServerRequestDTO dto);
+
+    ServerResponseDTO update(Long id, ServerRequestDTO dto);
+
+    void delete(Long id);
 
     List<ServerResponseDTO> getAll();
 
@@ -19,8 +27,15 @@ public interface ServerService {
 
     ServerSummaryDTO getSummaryById(Long id);
 
-    void delete(Long id);
-    ServerResponseDTO update(Long id, ServerRequestDTO dto);
+    /* =========================
+       CONNECTIVITY (A.1)
+       ========================= */
 
-    ServerStatus checkConnectivity(Long serverId);
+    ServerStatus checkSshConnectivity(Long serverId);
+
+    ServerStatus checkApplicationServerConnectivity(Long serverId);
+
+    ServerStatus checkGlobalConnectivity(Long serverId);
 }
+
+

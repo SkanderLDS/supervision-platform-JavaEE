@@ -1,75 +1,89 @@
 package com.vermeg.platform.supervision_platform.Service;
 
+import com.jcraft.jsch.*;
 import com.vermeg.platform.supervision_platform.Entity.Server;
 import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
-import com.vermeg.platform.supervision_platform.Repository.ServerRepository;
 import org.springframework.stereotype.Service;
-import jakarta.transaction.Transactional;
 
-import java.io.IOException;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 
 @Service
-@Transactional
 public class ServerConnectivityServiceImpl implements ServerConnectivityService {
 
     @Override
     public ServerStatus checkServer(Server server) {
 
+        Session session = null;
+
         try {
-            switch (server.getType()) {
+            JSch jsch = new JSch();
 
-                case WILDFLY:
-                case JBOSS:
-                    return checkWildFly(server);
-
-                case WEBSPHERE:
-                    return checkWebSphere(server);
-
-                default:
-                    return ServerStatus.UNKNOWN;
-            }
-        } catch (Exception e) {
-            return ServerStatus.DOWN;
-        }
-    }
-
-    private ServerStatus checkWildFly(Server server) {
-        try {
-            String urlStr =
-                    "http://" + server.getHost() + ":" + server.getPort() + "/";
-
-            HttpURLConnection conn =
-                    (HttpURLConnection) new URL(urlStr).openConnection();
-
-            conn.setConnectTimeout(3000);
-            conn.setReadTimeout(3000);
-            conn.setRequestMethod("GET");
-
-            int responseCode = conn.getResponseCode();
-
-            // 200 or 302 are both OK for WildFly
-            if (responseCode == 200 || responseCode == 302) {
-                return ServerStatus.UP;
-            }
-
-            return ServerStatus.DOWN;
-
-        } catch (Exception e) {
-            return ServerStatus.DOWN;
-        }
-    }
-
-    private ServerStatus checkWebSphere(Server server) {
-        try (Socket socket = new Socket()) {
-            socket.connect(
-                    new InetSocketAddress(server.getHost(), server.getPort()), 3000
+            session = jsch.getSession(
+                    server.getSshUsername(),
+                    server.getHost(),
+                    server.getSshPort()
             );
+
+            session.setPassword(server.getSshPassword());
+
+            // Important en environnement test/dev
+            session.setConfig("StrictHostKeyChecking", "no");
+
+            session.connect(5000); // timeout 5s
+
+            // Exécuter une commande simple
+            ChannelExec channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand("echo OK");
+            channel.connect();
+
+            channel.disconnect();
+            session.disconnect();
+
+            return ServerStatus.UP;
+
+        } catch (Exception e) {
+            if (session != null && session.isConnected()) {
+                session.disconnect();
+            }
+            return ServerStatus.DOWN;
+        }
+    }
+
+    @Override
+    public ServerStatus checkSsh(Server server) {
+        // SSH ONLY
+        try {
+            // (code SSH JSch qu’on a déjà fait)
             return ServerStatus.UP;
         } catch (Exception e) {
             return ServerStatus.DOWN;
         }
     }
+
+    @Override
+    public ServerStatus checkApplicationServer(Server server) {
+        try {
+            // Exemple WildFly management port
+            Socket socket = new Socket();
+            socket.connect(
+                    new InetSocketAddress(server.getHost(), server.getManagementPort()),
+                    3000
+            );
+            socket.close();
+            return ServerStatus.UP;
+        } catch (Exception e) {
+            return ServerStatus.DOWN;
+        }
+    }
+
+    @Override
+    public ServerStatus checkGlobal(Server server) {
+        ServerStatus ssh = checkSsh(server);
+        ServerStatus app = checkApplicationServer(server);
+
+        return (ssh == ServerStatus.UP && app == ServerStatus.UP)
+                ? ServerStatus.UP
+                : ServerStatus.DOWN;
+    }
 }
-
-

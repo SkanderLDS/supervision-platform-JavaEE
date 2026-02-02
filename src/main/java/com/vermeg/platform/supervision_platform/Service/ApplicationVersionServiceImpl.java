@@ -21,58 +21,40 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
         this.versionRepository = versionRepository;
         this.applicationRepository = applicationRepository;
     }
-
-    // ================= DEPLOY NEW VERSION =================
     @Override
     public ApplicationVersion deployNewVersion(
             Application application,
             String version,
             ApplicationType type
     ) {
-
-        // 1️⃣ Create version (UNDEPLOYED by default)
         ApplicationVersion appVersion =
                 new ApplicationVersion(application, version, type);
-
-        // 2️⃣ Mark deployment in progress
         appVersion.markDeploying();
-
-        // 3️⃣ Update application state
         application.markDeploying();
-
-        // 4️⃣ Persist both
         applicationRepository.save(application);
         return versionRepository.save(appVersion);
     }
 
-    // ================= MARK DEPLOYED =================
     @Override
     public void markVersionDeployed(ApplicationVersion version) {
-
         version.markDeployed();
-
         Application app = version.getApplication();
         app.markDeployed();
         app.setCurrentVersion(version.getVersion());
-
         applicationRepository.save(app);
         versionRepository.save(version);
     }
 
-    // ================= MARK FAILED =================
     @Override
     public void markVersionFailed(ApplicationVersion version) {
-
         version.markFailed();
-
         Application app = version.getApplication();
         app.markFailed();
-
         applicationRepository.save(app);
         versionRepository.save(version);
     }
 
-    // ================= READ VERSIONS =================
+
     @Override
     public List<ApplicationVersionResponseDTO> getVersionsForApplication(Long applicationId) {
         return versionRepository
@@ -84,8 +66,7 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
 
     // ================= MAPPER =================
     private ApplicationVersionResponseDTO toDTO(ApplicationVersion version) {
-        return new ApplicationVersionResponseDTO(
-                version.getId(),
+        return new ApplicationVersionResponseDTO(version.getId(),
                 version.getVersion(),
                 version.getType().name(),
                 version.getStatus().name(),
