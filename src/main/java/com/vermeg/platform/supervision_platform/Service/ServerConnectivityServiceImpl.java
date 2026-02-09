@@ -11,8 +11,11 @@ import java.net.Socket;
 @Service
 public class ServerConnectivityServiceImpl implements ServerConnectivityService {
 
+    /* =========================
+       SSH CONNECTIVITY
+       ========================= */
     @Override
-    public ServerStatus checkServer(Server server) {
+    public ServerStatus checkSsh(Server server) {
 
         Session session = null;
 
@@ -26,18 +29,10 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
             );
 
             session.setPassword(server.getSshPassword());
-
-            // Important en environnement test/dev
             session.setConfig("StrictHostKeyChecking", "no");
 
-            session.connect(5000); // timeout 5s
+            session.connect(5000); // 5 seconds timeout
 
-            // Exécuter une commande simple
-            ChannelExec channel = (ChannelExec) session.openChannel("exec");
-            channel.setCommand("echo OK");
-            channel.connect();
-
-            channel.disconnect();
             session.disconnect();
 
             return ServerStatus.UP;
@@ -50,40 +45,39 @@ public class ServerConnectivityServiceImpl implements ServerConnectivityService 
         }
     }
 
-    @Override
-    public ServerStatus checkSsh(Server server) {
-        // SSH ONLY
-        try {
-            // (code SSH JSch qu’on a déjà fait)
-            return ServerStatus.UP;
-        } catch (Exception e) {
-            return ServerStatus.DOWN;
-        }
-    }
-
+    /* =========================
+       APPLICATION SERVER CONNECTIVITY
+       ========================= */
     @Override
     public ServerStatus checkApplicationServer(Server server) {
-        try {
-            // Exemple WildFly management port
-            Socket socket = new Socket();
+
+        try (Socket socket = new Socket()) {
+
             socket.connect(
                     new InetSocketAddress(server.getHost(), server.getManagementPort()),
                     3000
             );
-            socket.close();
+
             return ServerStatus.UP;
+
         } catch (Exception e) {
             return ServerStatus.DOWN;
         }
     }
 
+    /* =========================
+       GLOBAL CHECK
+       ========================= */
     @Override
     public ServerStatus checkGlobal(Server server) {
-        ServerStatus ssh = checkSsh(server);
-        ServerStatus app = checkApplicationServer(server);
 
-        return (ssh == ServerStatus.UP && app == ServerStatus.UP)
-                ? ServerStatus.UP
-                : ServerStatus.DOWN;
+        ServerStatus sshStatus = checkSsh(server);
+        ServerStatus appStatus = checkApplicationServer(server);
+
+        if (sshStatus == ServerStatus.UP && appStatus == ServerStatus.UP) {
+            return ServerStatus.UP;
+        }
+
+        return ServerStatus.DOWN;
     }
 }

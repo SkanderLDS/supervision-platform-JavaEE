@@ -1,13 +1,9 @@
 package com.vermeg.platform.supervision_platform.Controller;
 
-
 import com.vermeg.platform.supervision_platform.DTO.ServerRequestDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerResponseDTO;
-import com.vermeg.platform.supervision_platform.Entity.Server;
 import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
-import com.vermeg.platform.supervision_platform.Service.ServerConnectivityService;
 import com.vermeg.platform.supervision_platform.Service.ServerService;
-import com.vermeg.platform.supervision_platform.Service.SupervisionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +14,9 @@ import java.util.List;
 public class ServerController {
 
     private final ServerService serverService;
-    private final SupervisionService supervisionService;
 
-    public ServerController(ServerService serverService, SupervisionService supervisionService) {
+    public ServerController(ServerService serverService) {
         this.serverService = serverService;
-        this.supervisionService = supervisionService;
     }
     @PostMapping
     public ServerResponseDTO create(@RequestBody ServerRequestDTO dto) {
@@ -32,13 +26,10 @@ public class ServerController {
     public List<ServerResponseDTO> getAll() {
         return serverService.getAll();
     }
+
     @GetMapping("/{id}")
     public ServerResponseDTO getById(@PathVariable Long id) {
         return serverService.getById(id);
-    }
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        serverService.delete(id);
     }
     @PutMapping("/{id}")
     public ResponseEntity<ServerResponseDTO> update(
@@ -47,10 +38,23 @@ public class ServerController {
     ) {
         return ResponseEntity.ok(serverService.update(id, dto));
     }
-    @PostMapping("/{id}/check")
-    public ResponseEntity<String> check(@PathVariable Long id) {
-        ServerStatus status = serverService.checkConnectivity(id);
-        return ResponseEntity.ok("Server status: " + status);
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        serverService.delete(id);
     }
-
+    @PostMapping("/{id}/check/ssh")
+    public ResponseEntity<String> checkSsh(@PathVariable Long id) {
+        ServerStatus status = serverService.checkSshConnectivity(id);
+        return ResponseEntity.ok("SSH Status: " + status);
+    }
+    @PostMapping("/{id}/check/app")
+    public ResponseEntity<String> checkApp(@PathVariable Long id) {
+        ServerStatus status = serverService.checkApplicationServerConnectivity(id);
+        return ResponseEntity.ok("Application Server Status: " + status);
+    }
+    @PostMapping("/{id}/check/global")
+    public ResponseEntity<String> checkGlobal(@PathVariable Long id) {
+        ServerStatus status = serverService.checkGlobalConnectivity(id);
+        return ResponseEntity.ok("Global Status: " + status);
+    }
 }

@@ -24,19 +24,19 @@ public class SupervisionServiceImpl implements SupervisionService {
     }
 
 
-    @Override
-    @Transactional
-    public ServerStatus superviseServer(Long serverId) {
-
-        Server server = serverRepository.findById(serverId)
-                .orElseThrow(() -> new RuntimeException("Server not found"));
-
-        ServerStatus status = connectivityService.checkServer(server);
-        server.setStatus(status);
-        serverRepository.save(server);
-        return status;
-
-    }
+//    @Override
+//    @Transactional
+//    public ServerStatus superviseServer(Long serverId) {
+//
+//        Server server = serverRepository.findById(serverId)
+//                .orElseThrow(() -> new RuntimeException("Server not found"));
+//
+//        ServerStatus status = connectivityService.checkServer(server);
+//        server.setStatus(status);
+//        serverRepository.save(server);
+//        return status;
+//
+//    }
 }
 
 

@@ -91,26 +91,30 @@ public class ServerServiceImpl implements ServerService {
     @Override
     public ServerResponseDTO update(Long id, ServerRequestDTO dto) {
 
-        Server server = serverRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Server not found"));
+        Server server = findServer(id);
 
         server.setName(dto.getName());
         server.setHost(dto.getHost());
+
+        // SSH
+        server.setSshUsername(dto.getSshUsername());
+        server.setSshPassword(dto.getSshPassword());
+        server.setSshPort(dto.getSshPort());
+
+        // Application ports
         server.setPort(dto.getPort());
         server.setManagementPort(dto.getManagementPort());
+
+        // Management credentials
         server.setManagementUsername(dto.getManagementUsername());
         server.setManagementPassword(dto.getManagementPassword());
+
         server.setType(ServerType.valueOf(dto.getType()));
         server.setVersion(dto.getVersion());
         server.setEnvironment(Environment.valueOf(dto.getEnvironment()));
 
         return toResponseDTO(serverRepository.save(server));
     }
-
-    /* =========================
-       CONNECTIVITY (A.1)
-       ========================= */
-
     @Override
     public ServerStatus checkSshConnectivity(Long serverId) {
 
@@ -127,7 +131,6 @@ public class ServerServiceImpl implements ServerService {
 
         Server server = findServer(serverId);
         ServerStatus status = connectivityService.checkApplicationServer(server);
-
         server.setStatus(status);
         serverRepository.save(server);
         return status;
@@ -135,24 +138,15 @@ public class ServerServiceImpl implements ServerService {
 
     @Override
     public ServerStatus checkGlobalConnectivity(Long serverId) {
-
         Server server = findServer(serverId);
         ServerStatus status = connectivityService.checkGlobal(server);
-
         server.setStatus(status);
         serverRepository.save(server);
         return status;
     }
-
-    /* =========================
-       HELPERS
-       ========================= */
-
     private Server findServer(Long id) {
-        return serverRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Server not found"));
+        return serverRepository.findById(id).orElseThrow(() -> new RuntimeException("Server not found"));
     }
-
     private ServerResponseDTO toResponseDTO(Server server) {
         return new ServerResponseDTO(
                 server.getId(),
