@@ -1,11 +1,11 @@
 package com.vermeg.platform.supervision_platform.DTO;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Getter
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationVersionResponseDTO {
 
@@ -13,6 +13,9 @@ public class ApplicationVersionResponseDTO {
     private String version;
     private String type;
     private String status;
+    private String artifactPath;
+    private Long applicationId;
+    private String applicationName;
     private LocalDateTime deployedAt;
     private LocalDateTime createdAt;
 }

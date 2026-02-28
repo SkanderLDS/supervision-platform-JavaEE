@@ -1,43 +1,43 @@
 package com.vermeg.platform.supervision_platform.Entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(
+        name = "server_metrics",
+        indexes = {
+                @Index(name = "idx_metrics_server", columnList = "server_id"),
+                @Index(name = "idx_metrics_collected_at", columnList = "collectedAt")
+        }
+)
 public class ServerMetrics {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private double cpuUsage;
+
+    @Column(nullable = false)
     private double memoryUsage;
+
+    @Column(nullable = false)
     private double diskUsage;
 
-    private LocalDateTime collectedAt;
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private LocalDateTime collectedAt = LocalDateTime.now();
 
-    @OneToOne
-    @JoinColumn(name = "server_id")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "server_id", nullable = false)
     private Server server;
-
-    protected ServerMetrics() {
-        this.collectedAt = LocalDateTime.now();
-    }
-
-    public ServerMetrics(Server server,
-                         double cpu,
-                         double memory,
-                         double disk) {
-        this.server = server;
-        this.cpuUsage = cpu;
-        this.memoryUsage = memory;
-        this.diskUsage = disk;
-        this.collectedAt = LocalDateTime.now();
-
-    }
 }

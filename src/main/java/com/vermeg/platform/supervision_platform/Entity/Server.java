@@ -1,62 +1,98 @@
 package com.vermeg.platform.supervision_platform.Entity;
 
+import com.vermeg.platform.supervision_platform.Config.EncryptedStringConverter;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Table(
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"host", "environment"})
+        }
+)
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Server {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column(nullable = false, unique = true)
     private String name;
+
     @Column(nullable = false)
-    private String host; // IP ou hostname
+    private String host;
+
+    // SSH
     @Column(nullable = false)
     private String sshUsername;
+
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false)
     private String sshPassword;
+
+    @Builder.Default
     @Column(nullable = false)
     private int sshPort = 22;
+
+    // App server
     @Column(nullable = false)
-    private int port; // ex: 8080 / 9090
+    private int port;
+
     @Column(nullable = false)
-    private int managementPort; // ex: 9990 / 9991
+    private int managementPort;
+
     @Column(nullable = false)
     private String managementUsername;
+
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false)
     private String managementPassword;
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ServerType type; // WILDFLY, WEBSPHERE...
-    @Column(nullable = false)
-    private String version; // WildFly 26, 27...
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Environment environment; // DEV, TEST, PROD
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ServerStatus status;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
-    @OneToMany(mappedBy = "server", cascade = CascadeType.ALL)
+    private String serverHomePath;
+
+    // Enums
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ServerType type;
+
+    @Column(nullable = false)
+    private String version;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Environment environment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ServerStatus status = ServerStatus.UNKNOWN;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
+    // Timestamps
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    private LocalDateTime lastCheckedAt;
+
+    // Relations
+    @OneToMany(mappedBy = "server", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<Application> applications = new ArrayList<>();
-    public Server() {
-        this.createdAt = LocalDateTime.now();
-        this.status = ServerStatus.UNKNOWN;
-    }
-
+}
 //    public Server(
 //            String name,
 //            String host,
@@ -86,5 +122,5 @@ public class Server {
 //        this.status = ServerStatus.UNKNOWN;
 //        this.createdAt = LocalDateTime.now();
 //    }
-}
+
 

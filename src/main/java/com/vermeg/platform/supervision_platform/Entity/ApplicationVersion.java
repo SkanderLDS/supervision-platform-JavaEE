@@ -1,14 +1,16 @@
 package com.vermeg.platform.supervision_platform.Entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ApplicationVersion {
 
     @Id
@@ -16,38 +18,31 @@ public class ApplicationVersion {
     private Long id;
 
     @Column(nullable = false)
-    private String version; // ex: 1.0.0
+    private String version;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ApplicationType type; // WAR / EAR
+    private ApplicationType type;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DeploymentStatus status;
+    @Builder.Default
+    private DeploymentStatus status = DeploymentStatus.UNDEPLOYED;
 
+    // Path where the artifact is stored on the platform server
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private String artifactPath;
+
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime deployedAt;
 
-    // 🔗 Relation métier
     @ManyToOne(optional = false)
     @JoinColumn(name = "application_id")
     private Application application;
 
-    protected ApplicationVersion() {
-        this.createdAt = LocalDateTime.now();
-        this.status = DeploymentStatus.UNDEPLOYED;
-    }
-
-    public ApplicationVersion(Application application, String version, ApplicationType type) {
-        this.application = application;
-        this.version = version;
-        this.type = type;
-        this.createdAt = LocalDateTime.now();
-        this.status = DeploymentStatus.UNDEPLOYED;
-    }
     public void markDeploying() {
         this.status = DeploymentStatus.IN_PROGRESS;
     }
@@ -59,5 +54,9 @@ public class ApplicationVersion {
 
     public void markFailed() {
         this.status = DeploymentStatus.FAILED;
+    }
+
+    public void markStopped() {
+        this.status = DeploymentStatus.STOPPED;
     }
 }

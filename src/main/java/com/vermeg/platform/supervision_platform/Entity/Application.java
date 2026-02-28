@@ -1,18 +1,19 @@
 package com.vermeg.platform.supervision_platform.Entity;
 
-import com.vermeg.platform.supervision_platform.Entity.*;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
 @Entity
 @Table(name = "applications")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Application {
 
     @Id
@@ -27,61 +28,42 @@ public class Application {
 
     @Column(nullable = false)
     private String runtimeName;
+
     @Column(nullable = false)
     private String artifactName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ApplicationType type;
+
     private String contextPath;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DeploymentStatus status;
+    @Builder.Default
+    private DeploymentStatus status = DeploymentStatus.UNDEPLOYED;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "server_id")
     private Server server;
 
     private LocalDateTime lastDeployedAt;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<DeploymentLog> deploymentLogs = new ArrayList<>();
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<ApplicationVersion> versions = new ArrayList<>();
-
-
-    protected Application() {
-        this.createdAt = LocalDateTime.now();
-        this.status = DeploymentStatus.UNDEPLOYED;
-    }
-
-    public Application(String name,
-                       String currentVersion,
-                       String runtimeName,
-                       String artifactName,
-                       ApplicationType type,
-                       String contextPath,
-
-                       Server server) {
-
-        this.name = name;
-        this.currentVersion = currentVersion;
-        this.runtimeName = runtimeName;
-        this.artifactName = artifactName;
-        this.type = type;
-        this.contextPath = contextPath;
-        this.server = server;
-
-        this.createdAt = LocalDateTime.now();
-        this.status = DeploymentStatus.UNDEPLOYED;
-    }
 
     /* =======================
        State transitions
        ======================= */
-
     public void markDeploying() {
         this.status = DeploymentStatus.IN_PROGRESS;
     }

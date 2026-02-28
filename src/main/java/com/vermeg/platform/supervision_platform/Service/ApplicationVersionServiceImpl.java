@@ -4,6 +4,7 @@ import com.vermeg.platform.supervision_platform.DTO.ApplicationVersionResponseDT
 import com.vermeg.platform.supervision_platform.Entity.*;
 import com.vermeg.platform.supervision_platform.Repository.ApplicationRepository;
 import com.vermeg.platform.supervision_platform.Repository.ApplicationVersionRepository;
+import com.vermeg.platform.supervision_platform.exception.ApplicationNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -21,14 +22,34 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
         this.versionRepository = versionRepository;
         this.applicationRepository = applicationRepository;
     }
+
+    @Override
+    public ApplicationVersionResponseDTO createVersion(Long applicationId, String version, String type, String artifactPath) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+
+        ApplicationVersion appVersion = ApplicationVersion.builder()
+                .application(application)
+                .version(version)
+                .type(ApplicationType.valueOf(type))
+                .artifactPath(artifactPath)
+                .build();
+
+        return toDTO(versionRepository.save(appVersion));
+    }
+
     @Override
     public ApplicationVersion deployNewVersion(
             Application application,
             String version,
             ApplicationType type
     ) {
-        ApplicationVersion appVersion =
-                new ApplicationVersion(application, version, type);
+        ApplicationVersion appVersion = ApplicationVersion.builder()
+                .application(application)
+                .version(version)
+                .type(type)
+                .build();
+
         appVersion.markDeploying();
         application.markDeploying();
         applicationRepository.save(application);
@@ -54,7 +75,6 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
         versionRepository.save(version);
     }
 
-
     @Override
     public List<ApplicationVersionResponseDTO> getVersionsForApplication(Long applicationId) {
         return versionRepository
@@ -66,10 +86,14 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
 
     // ================= MAPPER =================
     private ApplicationVersionResponseDTO toDTO(ApplicationVersion version) {
-        return new ApplicationVersionResponseDTO(version.getId(),
+        return new ApplicationVersionResponseDTO(
+                version.getId(),
                 version.getVersion(),
                 version.getType().name(),
                 version.getStatus().name(),
+                version.getArtifactPath(),
+                version.getApplication().getId(),
+                version.getApplication().getName(),
                 version.getDeployedAt(),
                 version.getCreatedAt()
         );

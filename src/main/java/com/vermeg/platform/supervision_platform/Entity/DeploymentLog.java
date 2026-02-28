@@ -1,6 +1,5 @@
 package com.vermeg.platform.supervision_platform.Entity;
 
-
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -39,7 +38,8 @@ public class DeploymentLog {
     @Column(length = 50)
     private String version;
 
-    @Column(nullable = false, length = 2000)
+    // TEXT instead of length 2000 — stack traces can be very long
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
     @Enumerated(EnumType.STRING)
@@ -66,5 +66,3 @@ public class DeploymentLog {
         this.timestamp = LocalDateTime.now();
     }
 }
-
-

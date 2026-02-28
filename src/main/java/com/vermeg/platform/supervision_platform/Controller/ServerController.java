@@ -2,12 +2,16 @@ package com.vermeg.platform.supervision_platform.Controller;
 
 import com.vermeg.platform.supervision_platform.DTO.ServerRequestDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerResponseDTO;
+import com.vermeg.platform.supervision_platform.DTO.ServerSummaryDTO;
 import com.vermeg.platform.supervision_platform.Entity.ServerStatus;
 import com.vermeg.platform.supervision_platform.Service.ServerService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/servers")
@@ -18,43 +22,55 @@ public class ServerController {
     public ServerController(ServerService serverService) {
         this.serverService = serverService;
     }
+
     @PostMapping
-    public ServerResponseDTO create(@RequestBody ServerRequestDTO dto) {
-        return serverService.create(dto);
+    public ResponseEntity<ServerResponseDTO> create(@Valid @RequestBody ServerRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(serverService.create(dto));
     }
+
     @GetMapping
-    public List<ServerResponseDTO> getAll() {
-        return serverService.getAll();
+    public ResponseEntity<List<ServerResponseDTO>> getAll() {
+        return ResponseEntity.ok(serverService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ServerResponseDTO getById(@PathVariable Long id) {
-        return serverService.getById(id);
+    public ResponseEntity<ServerResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(serverService.getById(id));
     }
+
+    @GetMapping("/{id}/summary")
+    public ResponseEntity<ServerSummaryDTO> getSummary(@PathVariable Long id) {
+        return ResponseEntity.ok(serverService.getSummaryById(id));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ServerResponseDTO> update(
             @PathVariable Long id,
-            @RequestBody ServerRequestDTO dto
-    ) {
+            @Valid @RequestBody ServerRequestDTO dto) {
         return ResponseEntity.ok(serverService.update(id, dto));
     }
+
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         serverService.delete(id);
+        return ResponseEntity.noContent().build();
     }
+
     @PostMapping("/{id}/check/ssh")
-    public ResponseEntity<String> checkSsh(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> checkSsh(@PathVariable Long id) {
         ServerStatus status = serverService.checkSshConnectivity(id);
-        return ResponseEntity.ok("SSH Status: " + status);
+        return ResponseEntity.ok(Map.of("status", status.name()));
     }
+
     @PostMapping("/{id}/check/app")
-    public ResponseEntity<String> checkApp(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> checkApp(@PathVariable Long id) {
         ServerStatus status = serverService.checkApplicationServerConnectivity(id);
-        return ResponseEntity.ok("Application Server Status: " + status);
+        return ResponseEntity.ok(Map.of("status", status.name()));
     }
+
     @PostMapping("/{id}/check/global")
-    public ResponseEntity<String> checkGlobal(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> checkGlobal(@PathVariable Long id) {
         ServerStatus status = serverService.checkGlobalConnectivity(id);
-        return ResponseEntity.ok("Global Status: " + status);
+        return ResponseEntity.ok(Map.of("status", status.name()));
     }
 }

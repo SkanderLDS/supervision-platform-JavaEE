@@ -9,13 +9,13 @@ import java.util.List;
 
 public interface ApplicationVersionService {
 
-    ApplicationVersion deployNewVersion(
-            Application application,
-            String version,
-            ApplicationType type
-    );
+    ApplicationVersionResponseDTO createVersion(Long applicationId, String version, String type, String artifactPath);
+
+    ApplicationVersion deployNewVersion(Application application, String version, ApplicationType type);
 
     List<ApplicationVersionResponseDTO> getVersionsForApplication(Long applicationId);
+
     void markVersionFailed(ApplicationVersion version);
+
     void markVersionDeployed(ApplicationVersion version);
 }

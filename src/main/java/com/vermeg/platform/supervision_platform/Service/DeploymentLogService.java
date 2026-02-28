@@ -6,7 +6,6 @@ import com.vermeg.platform.supervision_platform.Entity.DeploymentStatus;
 import com.vermeg.platform.supervision_platform.Entity.LogLevel;
 
 public interface DeploymentLogService {
-
     void log(
             Application application,
             DeploymentAction action,
