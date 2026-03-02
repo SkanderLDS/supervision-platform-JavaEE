@@ -8,6 +8,7 @@ import com.vermeg.platform.supervision_platform.Repository.ServerRepository;
 import com.vermeg.platform.supervision_platform.exception.ServerNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import specification.AppLogSpecification;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -60,7 +61,8 @@ public class LogCollectionServiceImpl implements LogCollectionService {
     public List<AppLogDTO> searchLogs(Long serverId, LogLevel level,
                                       LocalDateTime from, LocalDateTime to,
                                       String keyword) {
-        return appLogRepository.searchLogs(serverId, level, from, to, keyword)
+        return appLogRepository
+                .findAll(AppLogSpecification.filter(serverId, level, from, to, keyword))
                 .stream()
                 .map(this::toDTO)
                 .toList();
