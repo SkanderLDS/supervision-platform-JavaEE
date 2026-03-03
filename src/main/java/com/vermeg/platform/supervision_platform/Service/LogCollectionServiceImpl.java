@@ -30,11 +30,13 @@ public class LogCollectionServiceImpl implements LogCollectionService {
 
     private final AppLogRepository appLogRepository;
     private final ServerRepository serverRepository;
+    private final AlertService alertService;
 
     public LogCollectionServiceImpl(AppLogRepository appLogRepository,
-                                    ServerRepository serverRepository) {
+                                    ServerRepository serverRepository,AlertService alertService) {
         this.appLogRepository = appLogRepository;
         this.serverRepository = serverRepository;
+        this.alertService = alertService;
     }
 
     /* =========================
@@ -49,9 +51,17 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         List<String> lines = readRemoteFile(server, logFilePath);
         List<AppLog> logs = parseLogLines(lines, server);
 
-        appLogRepository.saveAll(logs);
-
-        return logs.stream().map(this::toDTO).toList();
+        // Save only new logs — avoid duplicates
+        List<AppLog> newLogs = logs.stream()
+                .filter(log -> !appLogRepository.existsByServerIdAndTimestampAndMessage(
+                        server.getId(), log.getTimestamp(), log.getMessage())).toList();
+        appLogRepository.saveAll(newLogs);
+        newLogs.stream().filter(log -> log.getLevel() == LogLevel.ERROR)
+                .forEach(log -> alertService.createServerAlert(server,
+                        "ERROR log detected: " + log.getMessage(),
+                        AlertLevel.CRITICAL
+                ));
+        return newLogs.stream().map(this::toDTO).toList();
     }
 
     /* =========================
@@ -67,10 +77,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
                 .map(this::toDTO)
                 .toList();
     }
-
-    /* =========================
-       GET LATEST LOGS
-       ========================= */
     @Override
     public List<AppLogDTO> getLatestLogs(Long serverId) {
         return appLogRepository
@@ -80,11 +86,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
                 .map(this::toDTO)
                 .toList();
     }
-
-    /* =========================
-       RESOLVE LOG FILE PATH
-       Based on server type
-       ========================= */
     private String resolveLogFilePath(Server server) {
         return switch (server.getType()) {
             case WILDFLY, JBOSS -> server.getServerHomePath()
@@ -97,11 +98,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
                     + "/domains/domain1/logs/server.log";
         };
     }
-
-    /* =========================
-       PARSE LOG LINES
-       Routes to correct parser based on server type
-       ========================= */
     private List<AppLog> parseLogLines(List<String> lines, Server server) {
         return switch (server.getType()) {
             case WILDFLY, JBOSS -> parseWildFlyLogs(lines, server);
@@ -111,10 +107,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         };
     }
 
-    /* =========================
-       WILDFLY / JBOSS LOG PARSER
-       Format: 2026-02-28 13:33:09,645 INFO  [category] (thread) message
-       ========================= */
     private List<AppLog> parseWildFlyLogs(List<String> lines, Server server) {
         List<AppLog> logs = new ArrayList<>();
         Pattern pattern = Pattern.compile(
@@ -141,11 +133,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         }
         return logs;
     }
-
-    /* =========================
-       WEBSPHERE LOG PARSER
-       Format: [28/02/26 13:33:09:645 CET] 00000001 SystemOut O message
-       ========================= */
     private List<AppLog> parseWebSphereLogs(List<String> lines, Server server) {
         List<AppLog> logs = new ArrayList<>();
         Pattern pattern = Pattern.compile(
@@ -173,10 +160,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         return logs;
     }
 
-    /* =========================
-       TOMCAT LOG PARSER
-       Format: 28-Feb-2026 13:33:09.645 INFO [main] message
-       ========================= */
     private List<AppLog> parseTomcatLogs(List<String> lines, Server server) {
         List<AppLog> logs = new ArrayList<>();
         Pattern pattern = Pattern.compile(
@@ -204,9 +187,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         return logs;
     }
 
-    /* =========================
-       PARSE LOG LEVEL
-       ========================= */
     private LogLevel parseLogLevel(String levelStr) {
         return switch (levelStr.toUpperCase()) {
             case "ERROR", "FATAL" -> LogLevel.ERROR;
@@ -215,9 +195,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         };
     }
 
-    /* =========================
-       READ REMOTE FILE VIA SSH
-       ========================= */
     private List<String> readRemoteFile(Server server, String filePath) {
         Session session = null;
         ChannelExec channel = null;
@@ -249,9 +226,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         return lines;
     }
 
-    /* =========================
-       SSH SESSION FACTORY
-       ========================= */
     private Session createSession(Server server) throws JSchException {
         JSch jsch = new JSch();
         Session session = jsch.getSession(
@@ -265,9 +239,6 @@ public class LogCollectionServiceImpl implements LogCollectionService {
         return session;
     }
 
-    /* =========================
-       MAPPER
-       ========================= */
     private AppLogDTO toDTO(AppLog log) {
         return AppLogDTO.builder()
                 .id(log.getId())
