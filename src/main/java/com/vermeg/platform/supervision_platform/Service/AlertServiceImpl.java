@@ -14,9 +14,11 @@ import java.util.List;
 public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
+    private final EmailService emailService;
 
-    public AlertServiceImpl(AlertRepository alertRepository) {
+    public AlertServiceImpl(AlertRepository alertRepository, EmailService emailService) {
         this.alertRepository = alertRepository;
+        this.emailService = emailService;
     }
 
     /* =========================
@@ -25,37 +27,41 @@ public class AlertServiceImpl implements AlertService {
        ========================= */
     @Override
     public void checkServerAlerts(Server server, ServerMetrics metrics) {
-        if (metrics.getCpuUsage() > 80) {
+        // Keep default hardcoded thresholds as fallback
+        // if no custom rules are defined for this server
+        boolean hasCustomRules = alertRepository.existsByServerIdAndResolvedFalse(server.getId());
+
+        // Default thresholds — always applied
+        if (metrics.getCpuUsage() > 90) {
+            createAlertIfNotExists(
+                    "Critical CPU usage: " + String.format("%.1f", metrics.getCpuUsage()) + "%",
+                    AlertLevel.CRITICAL, server, null);
+        } else if (metrics.getCpuUsage() > 80) {
             createAlertIfNotExists(
                     "High CPU usage: " + String.format("%.1f", metrics.getCpuUsage()) + "%",
-                    AlertLevel.WARN,
-                    server,
-                    null
-            );
+                    AlertLevel.WARN, server, null);
         }
 
-        if (metrics.getMemoryUsage() > 85) {
+        if (metrics.getMemoryUsage() > 90) {
+            createAlertIfNotExists(
+                    "Critical memory usage: " + String.format("%.1f", metrics.getMemoryUsage()) + "%",
+                    AlertLevel.CRITICAL, server, null);
+        } else if (metrics.getMemoryUsage() > 85) {
             createAlertIfNotExists(
                     "High memory usage: " + String.format("%.1f", metrics.getMemoryUsage()) + "%",
-                    AlertLevel.WARN,
-                    server,
-                    null
-            );
+                    AlertLevel.WARN, server, null);
         }
 
-        if (metrics.getDiskUsage() > 90) {
+        if (metrics.getDiskUsage() > 95) {
+            createAlertIfNotExists(
+                    "Critical disk usage: " + String.format("%.1f", metrics.getDiskUsage()) + "%",
+                    AlertLevel.CRITICAL, server, null);
+        } else if (metrics.getDiskUsage() > 90) {
             createAlertIfNotExists(
                     "Disk almost full: " + String.format("%.1f", metrics.getDiskUsage()) + "%",
-                    AlertLevel.CRITICAL,
-                    server,
-                    null
-            );
+                    AlertLevel.WARN, server, null);
         }
     }
-
-    /* =========================
-       APPLICATION FAILED ALERT
-       ========================= */
     @Override
     public void applicationFailed(Application app, String reason) {
         createAlertIfNotExists(
@@ -89,8 +95,9 @@ public class AlertServiceImpl implements AlertService {
     }
 
     /* =========================
-       RESOLVE ALERT
-       ========================= */
+           RESOLVE ALERT
+           ========================= */
+
     @Override
     public void resolveAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
@@ -119,6 +126,16 @@ public class AlertServiceImpl implements AlertService {
                     .application(app)
                     .build();
             alertRepository.save(alert);
+
+            // Send email notification for WARN and CRITICAL alerts
+            if (level == AlertLevel.WARN || level == AlertLevel.CRITICAL) {
+                try {
+                    emailService.sendAlertEmail(alert, "skanlds2598@gmail.com");
+                } catch (Exception e) {
+                    // Log but don't fail the alert creation
+                    System.err.println("Failed to send alert email: " + e.getMessage());
+                }
+            }
         }
     }
 

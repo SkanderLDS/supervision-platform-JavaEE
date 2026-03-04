@@ -9,4 +9,5 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     List<Alert> findByServerIdOrderByCreatedAtDesc(Long serverId);
     List<Alert> findByServerIdAndResolvedFalseOrderByCreatedAtDesc(Long serverId);
     boolean existsByServerIdAndMessageAndResolvedFalse(Long serverId, String message);
+    boolean existsByServerIdAndResolvedFalse(Long serverId);
 }

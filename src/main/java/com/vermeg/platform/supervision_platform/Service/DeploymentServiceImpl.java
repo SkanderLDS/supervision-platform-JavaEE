@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -17,17 +18,20 @@ public class DeploymentServiceImpl implements DeploymentService {
     private final ApplicationRepository applicationRepository;
     private final DeploymentLogService deploymentLogService;
     private final WildFlyManagementClient wildFlyClient;
+    private final AlertService alertService;
 
     public DeploymentServiceImpl(
             ApplicationVersionRepository versionRepository,
             ApplicationRepository applicationRepository,
             DeploymentLogService deploymentLogService,
-            WildFlyManagementClient wildFlyClient
+            WildFlyManagementClient wildFlyClient,
+            AlertService alertService
     ) {
         this.versionRepository = versionRepository;
         this.applicationRepository = applicationRepository;
         this.deploymentLogService = deploymentLogService;
         this.wildFlyClient = wildFlyClient;
+        this.alertService = alertService;
     }
 
     /* =========================
@@ -61,9 +65,13 @@ public class DeploymentServiceImpl implements DeploymentService {
             version.markFailed();
             app.markFailed();
             log(version, DeploymentAction.DEPLOY, DeploymentStatus.FAILED,
-                   "Deployment failed: " + e.getMessage());
+                    "Deployment failed: " + e.getMessage());
             versionRepository.save(version);
             applicationRepository.save(app);
+
+            // Auto-rollback to last successful version
+            attemptRollback(app, version);
+
             throw new RuntimeException("Deployment failed: " + e.getMessage(), e);
         }
     }
@@ -193,5 +201,78 @@ public class DeploymentServiceImpl implements DeploymentService {
                 version.getVersion(),
                 message
         );
+    }
+
+    /* =========================
+   AUTO-ROLLBACK
+   Finds last successfully deployed version and redeploys it
+   ========================= */
+    private void attemptRollback(Application app, ApplicationVersion failedVersion) {
+        try {
+            // Find last successfully deployed version (excluding the failed one)
+            Optional<ApplicationVersion> lastSuccessful = versionRepository
+                    .findTopByApplicationIdAndStatusOrderByDeployedAtDesc(
+                            app.getId(), DeploymentStatus.DEPLOYED);
+
+            if (lastSuccessful.isEmpty() ||
+                    lastSuccessful.get().getId().equals(failedVersion.getId())) {
+                // No previous successful version to rollback to
+                alertService.createServerAlert(
+                        app.getServer(),
+                        "Deployment failed for " + app.getName()
+                                + " version " + failedVersion.getVersion()
+                                + " — No previous version available for rollback",
+                        AlertLevel.CRITICAL
+                );
+                return;
+            }
+
+            ApplicationVersion rollbackVersion = lastSuccessful.get();
+
+            // Get the artifact file from the rollback version
+            File rollbackArtifact = new File(rollbackVersion.getArtifactPath());
+            if (!rollbackArtifact.exists()) {
+                alertService.createServerAlert(
+                        app.getServer(),
+                        "Deployment failed for " + app.getName()
+                                + " — Rollback artifact not found: " + rollbackVersion.getArtifactPath(),
+                        AlertLevel.CRITICAL
+                );
+                return;
+            }
+
+            // Perform rollback deployment
+            log(rollbackVersion, DeploymentAction.DEPLOY, DeploymentStatus.IN_PROGRESS,
+                    "Auto-rollback started to version " + rollbackVersion.getVersion());
+
+            wildFlyClient.deploy(app.getServer(), rollbackArtifact, app.getRuntimeName());
+
+            rollbackVersion.markDeployed();
+            app.markDeployed();
+            app.setCurrentVersion(rollbackVersion.getVersion());
+
+            versionRepository.save(rollbackVersion);
+            applicationRepository.save(app);
+
+            log(rollbackVersion, DeploymentAction.DEPLOY, DeploymentStatus.DEPLOYED,
+                    "Auto-rollback successful to version " + rollbackVersion.getVersion());
+
+            // Create CRITICAL alert notifying about the rollback
+            alertService.createServerAlert(
+                    app.getServer(),
+                    "Auto-rollback executed for " + app.getName()
+                            + " — Rolled back from version " + failedVersion.getVersion()
+                            + " to version " + rollbackVersion.getVersion(),
+                    AlertLevel.CRITICAL
+            );
+
+        } catch (Exception rollbackEx) {
+            alertService.createServerAlert(
+                    app.getServer(),
+                    "Auto-rollback FAILED for " + app.getName()
+                            + ": " + rollbackEx.getMessage(),
+                    AlertLevel.CRITICAL
+            );
+        }
     }
 }
