@@ -21,10 +21,9 @@ public class ApplicationVersionController {
     public ResponseEntity<ApplicationVersionResponseDTO> createVersion(
             @PathVariable Long applicationId,
             @RequestParam String version,
-            @RequestParam String type,
-            @RequestParam String artifactPath) {
+            @RequestParam String type) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(versionService.createVersion(applicationId, version, type, artifactPath));
+                .body(versionService.createVersion(applicationId, version, type));
     }
     @GetMapping
     public ResponseEntity<List<ApplicationVersionResponseDTO>> getVersions(

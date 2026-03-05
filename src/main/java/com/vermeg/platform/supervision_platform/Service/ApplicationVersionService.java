@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface ApplicationVersionService {
 
-    ApplicationVersionResponseDTO createVersion(Long applicationId, String version, String type, String artifactPath);
+    ApplicationVersionResponseDTO createVersion(Long applicationId, String version, String type);
 
     ApplicationVersion deployNewVersion(Application application, String version, ApplicationType type);
 

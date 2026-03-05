@@ -1,7 +1,7 @@
 package com.vermeg.platform.supervision_platform.Service;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jcraft.jsch.*;
+import java.io.ByteArrayOutputStream;
 import com.vermeg.platform.supervision_platform.Entity.Server;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -30,12 +30,51 @@ public class WildFlyManagementClientImpl implements WildFlyManagementClient {
        ========================= */
     @Override
     public void deploy(Server server, File warFile, String runtimeName) {
-        // Step 1: Upload WAR via SCP
-        String remotePath = getDeploymentsPath(server) + "/" + runtimeName;
+        // Step 1: Validate WAR/EAR file before uploading
+        validateArtifact(warFile);
+
+        String deploymentsPath = getDeploymentsPath(server);
+
+        // Step 2: Clean up old marker files
+        executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".deployed");
+        executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".failed");
+        executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".pending");
+        executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".dodeploy");
+        executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName);
+
+        // Step 3: Upload WAR via SCP
+        String remotePath = deploymentsPath + "/" + runtimeName;
         scpUpload(server, warFile, remotePath);
 
-        // Step 2: Wait for WildFly to deploy and verify via Management API
+        // Step 4: Force WildFly to attempt deployment
+        executeSSHCommand(server, "touch " + deploymentsPath + "/" + runtimeName + ".dodeploy");
+
+        // Step 5: Wait for deployment confirmation
         waitForDeploymentStatus(server, runtimeName, "OK", 60);
+    }
+
+    /* =========================
+       VALIDATE ARTIFACT
+       Checks if WAR/EAR is a valid ZIP file before uploading
+       ========================= */
+    private void validateArtifact(File artifact) {
+        if (!artifact.exists()) {
+            throw new RuntimeException("Artifact file not found: " + artifact.getPath());
+        }
+        if (artifact.length() == 0) {
+            throw new RuntimeException("Artifact file is empty: " + artifact.getName());
+        }
+        try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(artifact)) {
+            // Valid ZIP/WAR/EAR file — has at least one entry
+            if (zip.size() == 0) {
+                throw new RuntimeException("Artifact file is empty ZIP: " + artifact.getName());
+            }
+        } catch (java.util.zip.ZipException e) {
+            throw new RuntimeException("Invalid WAR/EAR file — not a valid ZIP archive: "
+                    + artifact.getName(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to validate artifact: " + e.getMessage(), e);
+        }
     }
 
     /* =========================
@@ -209,19 +248,44 @@ public class WildFlyManagementClientImpl implements WildFlyManagementClient {
         long start = System.currentTimeMillis();
         long timeoutMs = timeoutSeconds * 1000L;
 
+        String deploymentsPath = getDeploymentsPath(server);
+        String failedMarker = deploymentsPath + "/" + runtimeName + ".failed";
+        String deployedMarker = deploymentsPath + "/" + runtimeName + ".deployed";
+
         while (System.currentTimeMillis() - start < timeoutMs) {
             try {
-                String status = getDeploymentStatus(server, runtimeName);
+                // Check for .failed marker file via SSH
+                if (fileExistsOnServer(server, failedMarker)) {
+                    executeSSHCommand(server, "rm -f " + failedMarker);
+                    throw new RuntimeException(
+                            "WildFly deployment failed for: " + runtimeName);
+                }
 
+                // Check for .deployed marker — but also verify Management API
+                if (fileExistsOnServer(server, deployedMarker)) {
+                    // Double check via Management API
+                    String apiStatus = getDeploymentStatus(server, runtimeName);
+                    if ("OK".equals(apiStatus)) {
+                        return; // Truly successful
+                    }
+                    if ("FAILED".equals(apiStatus)) {
+                        executeSSHCommand(server, "rm -f " + deployedMarker);
+                        throw new RuntimeException(
+                                "WildFly deployment failed for: " + runtimeName);
+                    }
+                    // Status not yet determined — wait more
+                }
+
+                // Check Management API status directly
+                String status = getDeploymentStatus(server, runtimeName);
+                if ("FAILED".equals(status)) {
+                    throw new RuntimeException(
+                            "WildFly deployment failed for: " + runtimeName);
+                }
                 if (expectedStatus.equals(status)) {
                     return; // Success
                 }
 
-                if ("FAILED".equals(status)) {
-                    throw new RuntimeException("WildFly deployment failed for: " + runtimeName);
-                }
-
-                // Still deploying — wait and retry
                 Thread.sleep(2000);
 
             } catch (RuntimeException e) {
@@ -234,6 +298,57 @@ public class WildFlyManagementClientImpl implements WildFlyManagementClient {
         throw new RuntimeException("Deployment timed out after "
                 + timeoutSeconds + " seconds for: " + runtimeName);
     }
+
+
+
+    private boolean fileExistsOnServer(Server server, String filePath) {
+        try {
+            String result = executeSSHCommand(server,
+                    "test -f " + filePath + " && echo EXISTS || echo NOT_FOUND");
+            return result.trim().equals("EXISTS");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /* =========================
+       EXECUTE SSH COMMAND
+       ========================= */
+    private String executeSSHCommand(Server server, String command) {
+        Session session = null;
+        ChannelExec channel = null;
+        try {
+            session = createSshSession(server);
+            channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand(command);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            channel.setOutputStream(outputStream);
+            channel.connect(SSH_TIMEOUT);
+
+            // Wait for command to complete
+            while (!channel.isClosed()) {
+                Thread.sleep(500);
+            }
+
+            return outputStream.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("SSH command failed: " + e.getMessage(), e);
+        } finally {
+            if (channel != null && channel.isConnected()) channel.disconnect();
+            if (session != null && session.isConnected()) session.disconnect();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
 
     /* =========================
        SSH SESSION FACTORY

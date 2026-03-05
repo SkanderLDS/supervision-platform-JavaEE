@@ -6,6 +6,7 @@ import com.vermeg.platform.supervision_platform.Repository.ApplicationRepository
 import com.vermeg.platform.supervision_platform.Repository.ApplicationVersionRepository;
 import com.vermeg.platform.supervision_platform.exception.ApplicationNotFoundException;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,19 +24,29 @@ public class ApplicationVersionServiceImpl implements ApplicationVersionService 
         this.applicationRepository = applicationRepository;
     }
 
-    @Override
-    public ApplicationVersionResponseDTO createVersion(Long applicationId, String version, String type, String artifactPath) {
+    @Value("${app.artifacts.path}")
+    private String artifactsPath;
+
+    public ApplicationVersionResponseDTO createVersion(Long applicationId, String version, String type) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
 
+        // Save first to get the ID
         ApplicationVersion appVersion = ApplicationVersion.builder()
                 .application(application)
                 .version(version)
                 .type(ApplicationType.valueOf(type))
-                .artifactPath(artifactPath)
+                .artifactPath("pending") // temporary
                 .build();
 
-        return toDTO(versionRepository.save(appVersion));
+        ApplicationVersion saved = versionRepository.save(appVersion);
+
+        // Now set the permanent artifact path using the generated ID
+        String artifactPath = artifactsPath + "/version-" + saved.getId() + ".war";
+        saved.setArtifactPath(artifactPath);
+        versionRepository.save(saved);
+
+        return toDTO(saved);
     }
 
     @Override
