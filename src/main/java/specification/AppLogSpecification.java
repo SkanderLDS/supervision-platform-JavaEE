@@ -15,7 +15,8 @@ public class AppLogSpecification {
             LogLevel level,
             LocalDateTime from,
             LocalDateTime to,
-            String keyword) {
+            String keyword,
+            String applicationName) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -44,8 +45,15 @@ public class AppLogSpecification {
                 ));
             }
 
-            query.orderBy(cb.desc(root.get("timestamp")));
+            // Filter by application name if provided
+            if (applicationName != null && !applicationName.isBlank()) {
+                predicates.add(cb.like(
+                        cb.lower(root.get("message")),
+                        "%" + applicationName.toLowerCase() + "%"
+                ));
+            }
 
+            query.orderBy(cb.desc(root.get("timestamp")));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }

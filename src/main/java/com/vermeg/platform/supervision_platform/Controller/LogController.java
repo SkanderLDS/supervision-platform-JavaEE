@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/api/logs")
@@ -29,24 +30,25 @@ public class LogController {
     }
     /* SEARCH LOGS WITH FILTERS(Multi-criteria: level, date range, keyword)*/
     @GetMapping("/servers/{serverId}/search")
-    public ResponseEntity<List<AppLogDTO>> searchLogs(
+    public ResponseEntity<Page<AppLogDTO>> searchLogs(
             @PathVariable Long serverId,
             @RequestParam(required = false) String level,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String applicationName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
         LogLevel logLevel = null;
         if (level != null && !level.isBlank()) {
-            try {
-                logLevel = LogLevel.valueOf(level.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                // Invalid level — ignore and search without level filter
+            try {logLevel = LogLevel.valueOf(level.toUpperCase());}
+            catch (IllegalArgumentException e) {
             }
         }
         return ResponseEntity.ok(logCollectionService.searchLogs(
-                serverId, logLevel, from, to, keyword));
+                serverId, logLevel, from, to, keyword, applicationName, page, size));
     }
 }

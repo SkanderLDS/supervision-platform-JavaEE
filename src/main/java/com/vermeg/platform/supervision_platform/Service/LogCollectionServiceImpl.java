@@ -9,7 +9,9 @@ import com.vermeg.platform.supervision_platform.exception.ServerNotFoundExceptio
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import specification.AppLogSpecification;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -68,14 +70,15 @@ public class LogCollectionServiceImpl implements LogCollectionService {
        SEARCH LOGS WITH FILTERS
        ========================= */
     @Override
-    public List<AppLogDTO> searchLogs(Long serverId, LogLevel level,
+    public Page<AppLogDTO> searchLogs(Long serverId, LogLevel level,
                                       LocalDateTime from, LocalDateTime to,
-                                      String keyword) {
+                                      String keyword, String applicationName,
+                                      int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
         return appLogRepository
-                .findAll(AppLogSpecification.filter(serverId, level, from, to, keyword))
-                .stream()
-                .map(this::toDTO)
-                .toList();
+                .findAll(AppLogSpecification.filter(
+                        serverId, level, from, to, keyword, applicationName), pageable)
+                .map(this::toDTO);
     }
     @Override
     public List<AppLogDTO> getLatestLogs(Long serverId) {
