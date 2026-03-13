@@ -40,13 +40,13 @@ public class DataInitializer implements CommandLineRunner {
             User admin = User.builder().username("admin").email("admin@vermeg.com")
                     .password(passwordEncoder.encode("Admin@12345")).roles(Set.of(adminRole)).build();
             userRepository.save(admin);
-            System.out.println("✅ Default admin user created — username: admin, password: Admin@12345");
+            System.out.println("Default admin user created — username: admin, password: Admin@12345");
         }
     }
     private void createRoleIfNotExists(RoleName roleName) {
         if (roleRepository.findByName(roleName).isEmpty()) {
             roleRepository.save(Role.builder().name(roleName).build());
-            System.out.println("✅ Role created: " + roleName);
+            System.out.println("Role created: " + roleName);
         }
     }
 }

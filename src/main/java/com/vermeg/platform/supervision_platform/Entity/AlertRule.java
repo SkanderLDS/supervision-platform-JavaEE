@@ -28,6 +28,13 @@ public class AlertRule {
 
     @Column(nullable = false)
     @Builder.Default
+    private boolean emailNotification = false;
+
+    @Column
+    private String notificationEmail;
+
+    @Column(nullable = false)
+    @Builder.Default
     private boolean enabled = true;
 
     @Column(nullable = false, updatable = false)

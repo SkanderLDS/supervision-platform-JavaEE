@@ -30,26 +30,17 @@ public class WildFlyManagementClientImpl implements WildFlyManagementClient {
        ========================= */
     @Override
     public void deploy(Server server, File warFile, String runtimeName) {
-        // Step 1: Validate WAR/EAR file before uploading
+
         validateArtifact(warFile);
-
         String deploymentsPath = getDeploymentsPath(server);
-
-        // Step 2: Clean up old marker files
         executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".deployed");
         executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".failed");
         executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".pending");
         executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName + ".dodeploy");
         executeSSHCommand(server, "rm -f " + deploymentsPath + "/" + runtimeName);
-
-        // Step 3: Upload WAR via SCP
         String remotePath = deploymentsPath + "/" + runtimeName;
         scpUpload(server, warFile, remotePath);
-
-        // Step 4: Force WildFly to attempt deployment
         executeSSHCommand(server, "touch " + deploymentsPath + "/" + runtimeName + ".dodeploy");
-
-        // Step 5: Wait for deployment confirmation
         waitForDeploymentStatus(server, runtimeName, "OK", 60);
     }
 

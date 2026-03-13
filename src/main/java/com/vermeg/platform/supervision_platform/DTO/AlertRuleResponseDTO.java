@@ -17,4 +17,6 @@ public class AlertRuleResponseDTO {
     private LocalDateTime createdAt;
     private Long serverId;
     private String serverName;
+    private boolean emailNotification;
+    private String notificationEmail;
 }

@@ -11,11 +11,11 @@ public interface ApplicationVersionService {
 
     ApplicationVersionResponseDTO createVersion(Long applicationId, String version, String type);
 
-    ApplicationVersion deployNewVersion(Application application, String version, ApplicationType type);
+    //ApplicationVersion deployNewVersion(Application application, String version, ApplicationType type);
 
     List<ApplicationVersionResponseDTO> getVersionsForApplication(Long applicationId);
 
-    void markVersionFailed(ApplicationVersion version);
+    //void markVersionFailed(ApplicationVersion version);
 
-    void markVersionDeployed(ApplicationVersion version);
+    //void markVersionDeployed(ApplicationVersion version);
 }

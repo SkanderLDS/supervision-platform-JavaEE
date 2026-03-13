@@ -8,10 +8,11 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 public interface ApplicationService {
-
      ApplicationResponseDTO create(ApplicationRequestDTO dto);
-     List<ApplicationResponseDTO> getAll();
+     ApplicationResponseDTO update(Long id, ApplicationRequestDTO dto);
+     void delete(Long id);
      ApplicationResponseDTO getById(Long id);
-     void deleteApplication(Long id);
+     List<ApplicationResponseDTO> getAll();
+     List<ApplicationResponseDTO> getByServerId(Long serverId);
 }
 

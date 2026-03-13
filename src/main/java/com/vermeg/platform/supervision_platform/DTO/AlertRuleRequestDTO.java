@@ -18,6 +18,8 @@ public class AlertRuleRequestDTO {
     private double threshold;
     @NotNull(message = "Alert level is required")
     private String level;
+    private boolean emailNotification;
+    private String notificationEmail;
     @NotNull(message = "Server ID is required")
     private Long serverId;
 }

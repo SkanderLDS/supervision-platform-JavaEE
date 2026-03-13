@@ -76,6 +76,7 @@ public class AlertRuleController {
        GET RULES FOR SERVER — ALL authenticated
        ========================= */
     @GetMapping("/servers/{serverId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_VIEWER')")
     public ResponseEntity<List<AlertRuleResponseDTO>> getRulesForServer(
             @PathVariable Long serverId) {
         return ResponseEntity.ok(alertRuleService.getRulesForServer(serverId));

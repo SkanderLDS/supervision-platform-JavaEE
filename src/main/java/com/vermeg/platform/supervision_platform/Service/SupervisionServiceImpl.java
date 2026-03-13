@@ -57,17 +57,14 @@ public class SupervisionServiceImpl implements SupervisionService {
     public SupervisionResultDTO superviseServer(Long serverId) {
         Server server = serverRepository.findById(serverId)
                 .orElseThrow(() -> new ServerNotFoundException(serverId));
-
         // Step 1 — Check connectivity
         ServerStatus status = connectivityService.checkGlobal(server);
         server.setStatus(status);
         server.setLastCheckedAt(LocalDateTime.now());
         serverRepository.save(server);
-
         ServerMetricsDTO metricsDTO = null;
         int unresolvedCount = 0;
         List<ApplicationStatusDTO> appStatuses = List.of();
-
         // Step 2 — Collect metrics only if server is UP
         if (status == ServerStatus.UP) {
 
@@ -164,30 +161,22 @@ public class SupervisionServiceImpl implements SupervisionService {
     private void checkRuntimeInstability(Server server, ServerMetrics metrics) {
         boolean isCritical = metrics.getCpuUsage() > CRITICAL_CPU_THRESHOLD
                 || metrics.getMemoryUsage() > CRITICAL_MEMORY_THRESHOLD;
-
         if (!isCritical) return;
-
         // Check if a new version was deployed in the last 30 minutes
         LocalDateTime windowStart = LocalDateTime.now()
                 .minusMinutes(RECENT_DEPLOYMENT_WINDOW_MINUTES);
-
         Optional<ApplicationVersion> recentDeployment = versionRepository
                 .findTopByApplicationServerIdAndStatusAndDeployedAtAfterOrderByDeployedAtDesc(
                         server.getId(), DeploymentStatus.DEPLOYED, windowStart);
-
         if (recentDeployment.isEmpty()) return;
-
         ApplicationVersion unstableVersion = recentDeployment.get();
         Application app = unstableVersion.getApplication();
-
         // Avoid duplicate rollback alerts
         String alertMessage = "Runtime instability detected for " + app.getName()
                 + " version " + unstableVersion.getVersion()
                 + " — CPU: " + String.format("%.1f", metrics.getCpuUsage())
                 + "%, Memory: " + String.format("%.1f", metrics.getMemoryUsage()) + "%";
-
         alertService.createServerAlert(server, alertMessage, AlertLevel.CRITICAL);
-
         // Trigger auto-rollback
         rollbackService.attemptRollback(app, unstableVersion);
     }

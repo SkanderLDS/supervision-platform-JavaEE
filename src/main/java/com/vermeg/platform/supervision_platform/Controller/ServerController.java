@@ -1,5 +1,4 @@
 package com.vermeg.platform.supervision_platform.Controller;
-
 import com.vermeg.platform.supervision_platform.DTO.ServerRequestDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerResponseDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerSummaryDTO;
@@ -8,8 +7,8 @@ import com.vermeg.platform.supervision_platform.Service.ServerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 
@@ -24,26 +23,33 @@ public class ServerController {
     }
 
     @PostMapping
-    public ResponseEntity<ServerResponseDTO> create(@Valid @RequestBody ServerRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(serverService.create(dto));
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ServerResponseDTO> create(
+            @Valid @RequestBody ServerRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(serverService.create(dto));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_VIEWER')")
     public ResponseEntity<List<ServerResponseDTO>> getAll() {
         return ResponseEntity.ok(serverService.getAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_VIEWER')")
     public ResponseEntity<ServerResponseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(serverService.getById(id));
     }
 
     @GetMapping("/{id}/summary")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_VIEWER')")
     public ResponseEntity<ServerSummaryDTO> getSummary(@PathVariable Long id) {
         return ResponseEntity.ok(serverService.getSummaryById(id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ServerResponseDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody ServerRequestDTO dto) {
@@ -51,24 +57,28 @@ public class ServerController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         serverService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/check/ssh")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<Map<String, String>> checkSsh(@PathVariable Long id) {
         ServerStatus status = serverService.checkSshConnectivity(id);
         return ResponseEntity.ok(Map.of("status", status.name()));
     }
 
     @PostMapping("/{id}/check/app")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<Map<String, String>> checkApp(@PathVariable Long id) {
         ServerStatus status = serverService.checkApplicationServerConnectivity(id);
         return ResponseEntity.ok(Map.of("status", status.name()));
     }
 
     @PostMapping("/{id}/check/global")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<Map<String, String>> checkGlobal(@PathVariable Long id) {
         ServerStatus status = serverService.checkGlobalConnectivity(id);
         return ResponseEntity.ok(Map.of("status", status.name()));

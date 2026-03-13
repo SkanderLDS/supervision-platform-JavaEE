@@ -48,15 +48,14 @@ public class AlertRuleServiceImpl implements AlertRuleService {
                 .type(AlertRuleType.valueOf(dto.getType()))
                 .threshold(dto.getThreshold())
                 .level(AlertLevel.valueOf(dto.getLevel()))
+                .emailNotification(dto.isEmailNotification())
+                .notificationEmail(dto.getNotificationEmail())
                 .server(server)
                 .build();
 
         return toDTO(alertRuleRepository.save(rule));
     }
 
-    /* =========================
-       UPDATE RULE
-       ========================= */
     @Override
     public AlertRuleResponseDTO updateRule(Long id, AlertRuleRequestDTO dto) {
         AlertRule rule = findRule(id);
@@ -64,6 +63,8 @@ public class AlertRuleServiceImpl implements AlertRuleService {
         rule.setType(AlertRuleType.valueOf(dto.getType()));
         rule.setThreshold(dto.getThreshold());
         rule.setLevel(AlertLevel.valueOf(dto.getLevel()));
+        rule.setEmailNotification(dto.isEmailNotification());
+        rule.setNotificationEmail(dto.getNotificationEmail());
         return toDTO(alertRuleRepository.save(rule));
     }
 
@@ -206,6 +207,8 @@ public class AlertRuleServiceImpl implements AlertRuleService {
                 .threshold(rule.getThreshold())
                 .level(rule.getLevel().name())
                 .enabled(rule.isEnabled())
+                .emailNotification(rule.isEmailNotification())
+                .notificationEmail(rule.getNotificationEmail())
                 .createdAt(rule.getCreatedAt())
                 .serverId(rule.getServer().getId())
                 .serverName(rule.getServer().getName())

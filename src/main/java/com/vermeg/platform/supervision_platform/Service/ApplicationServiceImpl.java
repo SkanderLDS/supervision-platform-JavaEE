@@ -1,5 +1,4 @@
 package com.vermeg.platform.supervision_platform.Service;
-
 import com.vermeg.platform.supervision_platform.DTO.ApplicationRequestDTO;
 import com.vermeg.platform.supervision_platform.DTO.ApplicationResponseDTO;
 import com.vermeg.platform.supervision_platform.DTO.ServerSummaryDTO;
@@ -9,10 +8,12 @@ import com.vermeg.platform.supervision_platform.Repository.ServerRepository;
 import com.vermeg.platform.supervision_platform.exception.ApplicationNotFoundException;
 import com.vermeg.platform.supervision_platform.exception.ServerNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class ApplicationServiceImpl implements ApplicationService {
 
     private final ApplicationRepository applicationRepository;
@@ -23,12 +24,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         this.applicationRepository = applicationRepository;
         this.serverRepository = serverRepository;
     }
-
     @Override
     public ApplicationResponseDTO create(ApplicationRequestDTO dto) {
         Server server = serverRepository.findById(dto.getServerId())
                 .orElseThrow(() -> new ServerNotFoundException(dto.getServerId()));
-
         Application app = Application.builder()
                 .name(dto.getName())
                 .currentVersion(dto.getCurrentVersion())
@@ -38,30 +37,53 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .contextPath(dto.getContextPath())
                 .server(server)
                 .build();
+        return toDTO(applicationRepository.save(app));
+    }
+    @Override
+    public ApplicationResponseDTO update(Long id, ApplicationRequestDTO dto) {
+        Application app = applicationRepository.findById(id)
+                .orElseThrow(() -> new ApplicationNotFoundException(id));
 
+        app.setName(dto.getName());
+        app.setCurrentVersion(dto.getCurrentVersion());
+        app.setRuntimeName(dto.getRuntimeName());
+        app.setArtifactName(dto.getArtifactName());
+        app.setType(ApplicationType.valueOf(dto.getType()));
+        app.setContextPath(dto.getContextPath());
         return toDTO(applicationRepository.save(app));
     }
 
     @Override
+    public void delete(Long id) {
+        if (!applicationRepository.existsById(id)) {
+            throw new ApplicationNotFoundException(id);
+        }
+        applicationRepository.deleteById(id);
+    }
+
+    @Override
+    public ApplicationResponseDTO getById(Long id) {
+        return toDTO(applicationRepository.findById(id)
+                .orElseThrow(() -> new ApplicationNotFoundException(id)));
+    }
+
+    @Override
     public List<ApplicationResponseDTO> getAll() {
-        return applicationRepository.findAll().stream()
+        return applicationRepository.findAll()
+                .stream()
                 .map(this::toDTO)
                 .toList();
     }
 
     @Override
-    public ApplicationResponseDTO getById(Long id) {
-        Application app = applicationRepository.findById(id)
-                .orElseThrow(() -> new ApplicationNotFoundException(id));
-        return toDTO(app);
-    }
-
-    @Override
-    public void deleteApplication(Long id) {
-        if (!applicationRepository.existsById(id)) {
-            throw new ApplicationNotFoundException(id);
+    public List<ApplicationResponseDTO> getByServerId(Long serverId) {
+        if (!serverRepository.existsById(serverId)) {
+            throw new ServerNotFoundException(serverId);
         }
-        applicationRepository.deleteById(id);
+        return applicationRepository.findByServerId(serverId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     private ApplicationResponseDTO toDTO(Application app) {

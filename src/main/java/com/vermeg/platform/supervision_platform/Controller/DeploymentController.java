@@ -1,4 +1,5 @@
 package com.vermeg.platform.supervision_platform.Controller;
+
 import com.vermeg.platform.supervision_platform.DTO.ApplicationVersionResponseDTO;
 import com.vermeg.platform.supervision_platform.Entity.ApplicationVersion;
 import com.vermeg.platform.supervision_platform.Service.DeploymentService;
@@ -6,8 +7,10 @@ import com.vermeg.platform.supervision_platform.mapper.ApplicationMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,6 +34,7 @@ public class DeploymentController {
     }
 
     @PostMapping("/{versionId}/deploy")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<ApplicationVersionResponseDTO> deploy(
             @PathVariable Long versionId,
             @RequestParam("file") MultipartFile file) throws IOException {
@@ -41,6 +45,7 @@ public class DeploymentController {
     }
 
     @PostMapping("/{versionId}/redeploy")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<ApplicationVersionResponseDTO> redeploy(
             @PathVariable Long versionId,
             @RequestParam("file") MultipartFile file) throws IOException {
@@ -50,18 +55,21 @@ public class DeploymentController {
     }
 
     @PostMapping("/{versionId}/start")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<Void> start(@PathVariable Long versionId) {
         deploymentService.start(versionId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{versionId}/stop")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<Void> stop(@PathVariable Long versionId) {
         deploymentService.stop(versionId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{versionId}/restart")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<Void> restart(@PathVariable Long versionId) {
         deploymentService.restart(versionId);
         return ResponseEntity.ok().build();
@@ -69,16 +77,13 @@ public class DeploymentController {
 
     /* =========================
        SAVE ARTIFACT PERMANENTLY
-       Stores uploaded file in permanent artifacts directory
        ========================= */
     private File saveArtifact(MultipartFile multipartFile, Long versionId) throws IOException {
-        // Create artifacts directory if it doesn't exist
         Path artifactDir = Paths.get(artifactsPath);
         if (!Files.exists(artifactDir)) {
             Files.createDirectories(artifactDir);
         }
 
-        // Save file with version ID prefix to avoid conflicts
         String original = multipartFile.getOriginalFilename();
         String extension = (original != null && original.contains("."))
                 ? original.substring(original.lastIndexOf("."))
@@ -87,7 +92,6 @@ public class DeploymentController {
         String fileName = "version-" + versionId + extension;
         Path filePath = artifactDir.resolve(fileName);
 
-        // Save permanently
         multipartFile.transferTo(filePath.toFile());
 
         return filePath.toFile();
